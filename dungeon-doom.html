@@ -135,7 +135,9 @@
     display: none; overflow: hidden;
     background: #0a0510;
   }
-  #game-screen.active { display: flex; align-items: center; justify-content: center; }
+  #game-screen.active {
+    display: flex; align-items: center; justify-content: center;
+  }
 
   /* --- Game Viewport (constrained) --- */
   #game-viewport {
@@ -340,32 +342,35 @@
   }
   #boulder-hp-text { font-size: 0.9rem; color: #fff; min-width: 2.5em; }
 
-  /* --- Touch Controls --- */
+  /* --- Controls (overlaid at bottom of dungeon) --- */
   #controls {
     position: absolute; bottom: 0; left: 0; right: 0;
     display: none; justify-content: space-between;
     align-items: flex-end;
-    padding: 1rem 1.2rem; z-index: 20;
-    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    padding: 0.6rem 1rem;
+    padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 0px));
+    z-index: 20;
   }
   #controls.active { display: flex; }
   .ctrl-btn {
-    font-size: 1.3rem; padding: 0.8em 1.2em;
-    background: rgba(255,255,255,0.15); color: #fff;
-    border: 3px solid rgba(255,255,255,0.3); border-radius: 14px;
+    font-size: 1.2rem; padding: 0.7em 1.1em;
+    background: rgba(255,255,255,0.12); color: #fff;
+    border: 2px solid rgba(255,255,255,0.25); border-radius: 12px;
     font-family: inherit; font-weight: bold;
     transition: background 0.1s; cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+    min-width: 3.5em; text-align: center;
   }
   .ctrl-btn:active, .ctrl-btn.pressed {
     background: rgba(255,255,255,0.35);
+    transform: scale(0.95);
   }
-  #controls-left { display: flex; gap: 0.6rem; }
-  #controls-right { display: flex; gap: 0.6rem; }
-  .ctrl-btn.jump-btn { background: rgba(50,200,50,0.25); border-color: rgba(50,200,50,0.5); }
-  .ctrl-btn.duck-btn { background: rgba(50,100,200,0.25); border-color: rgba(50,100,200,0.5); }
-  .ctrl-btn.destroy-btn { background: rgba(255,80,0,0.25); border-color: rgba(255,80,0,0.5); }
+  #controls-left { display: flex; gap: 0.5rem; }
+  #controls-right { display: flex; gap: 0.5rem; }
+  .ctrl-btn.jump-btn { background: rgba(50,200,50,0.2); border-color: rgba(50,200,50,0.4); }
+  .ctrl-btn.duck-btn { background: rgba(50,100,200,0.2); border-color: rgba(50,100,200,0.4); }
+  .ctrl-btn.destroy-btn { background: rgba(255,80,0,0.2); border-color: rgba(255,80,0,0.4); }
 
   /* --- Game Over / Victory Screen --- */
   #game-over {
@@ -431,7 +436,7 @@
     #boulder { font-size: 3.5rem; }
     .obstacle { font-size: 2rem; }
     .pickup { font-size: 1.8rem; }
-    .ctrl-btn { font-size: 1.1rem; padding: 0.6em 1em; }
+    .ctrl-btn { font-size: 1rem; padding: 0.6em 0.8em; min-width: 3em; }
     #game-over h2 { font-size: 2.2rem; }
     #game-over .stat-line { font-size: 1.1rem; }
     #game-over .stat-line.big { font-size: 1.3rem; }
@@ -439,7 +444,9 @@
   }
 
   @media (max-width: 380px) {
-    .ctrl-btn { font-size: 1rem; padding: 0.5em 0.8em; }
+    .ctrl-btn { font-size: 0.9rem; padding: 0.5em 0.6em; min-width: 2.5em; }
+    #controls { padding: 0.4rem 0.5rem; gap: 0.3rem; }
+    #controls-left { gap: 0.3rem; }
     #hud { gap: 0.2rem; }
   }
 
@@ -509,7 +516,7 @@
         <button class="ctrl-btn duck-btn" id="btn-duck">Duck</button>
       </div>
       <div id="controls-right">
-        <button class="ctrl-btn destroy-btn" id="btn-destroy">🔥 Throw</button>
+        <button class="ctrl-btn destroy-btn" id="btn-destroy">🔥 Fire</button>
       </div>
     </div>
   </div>
@@ -1129,26 +1136,31 @@ document.addEventListener('mouseup', e => {
   if (e.button === 2) { duckPressed = false; inputDuck = false; }
 });
 
-// Touch controls
+// Controls (touch + click for all devices)
 const btnJump = document.getElementById('btn-jump');
 const btnDuck = document.getElementById('btn-duck');
 const btnDestroy = document.getElementById('btn-destroy');
 
-function setupTouchBtn(btn, onDown, onUp) {
+function setupBtn(btn, onDown, onUp) {
+  // Touch events
   btn.addEventListener('touchstart', e => { e.preventDefault(); onDown(); });
   btn.addEventListener('touchend', e => { e.preventDefault(); onUp(); });
   btn.addEventListener('touchcancel', e => { e.preventDefault(); onUp(); });
+  // Mouse events (for desktop clicking the buttons)
+  btn.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); onDown(); });
+  btn.addEventListener('mouseup', e => { e.preventDefault(); onUp(); });
+  btn.addEventListener('mouseleave', e => { onUp(); });
 }
 
-setupTouchBtn(btnJump,
+setupBtn(btnJump,
   () => { jumpPressed = true; inputJump = true; btnJump.classList.add('pressed'); },
   () => { jumpPressed = false; btnJump.classList.remove('pressed'); }
 );
-setupTouchBtn(btnDuck,
+setupBtn(btnDuck,
   () => { duckPressed = true; inputDuck = true; btnDuck.classList.add('pressed'); },
   () => { duckPressed = false; inputDuck = false; btnDuck.classList.remove('pressed'); }
 );
-setupTouchBtn(btnDestroy,
+setupBtn(btnDestroy,
   () => { destroyPressed = true; inputDestroy = true; btnDestroy.classList.add('pressed'); },
   () => { destroyPressed = false; btnDestroy.classList.remove('pressed'); }
 );
@@ -1937,9 +1949,8 @@ function startGameplay() {
   createWallTorches();
   updateHUD();
 
-  // Show touch controls if touch device
-  if (hasTouch) controlsEl.classList.add('active');
-  else controlsEl.classList.remove('active');
+  // Always show controls (works for touch, mouse clicks, and as visual reference)
+  controlsEl.classList.add('active');
 
   boulderSprite.style.animationPlayState = 'running';
   startMusic();
