@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hammer Head - Whack-a-Gnome!</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body, body * {
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    font-family: 'Segoe UI', 'Comic Sans MS', cursive, sans-serif;
+    cursor: none !important;
+  }
+
+  /* --- Title Screen --- */
+  #title-screen {
+    position: fixed; inset: 0;
+    background: linear-gradient(180deg, #87CEEB 0%, #90EE90 60%, #228B22 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    transition: opacity 0.5s;
+  }
+  #title-screen.hidden { opacity: 0; pointer-events: none; }
+  #title-screen h1 {
+    font-size: 4rem; color: #4a2800;
+    text-shadow: 3px 3px 0 #FFD700, -1px -1px 0 #2E1500;
+    margin-bottom: 0.5rem;
+    animation: bounce 1s infinite alternate;
+  }
+  #title-screen .subtitle {
+    font-size: 1.4rem; color: #2E1500; margin-bottom: 1.5rem;
+  }
+  #difficulty-pick {
+    display: flex; gap: 1rem; margin-bottom: 1rem;
+  }
+  .diff-btn {
+    font-size: 1.3rem; padding: 0.5em 1.4em;
+    background: #fff; color: #4a2800;
+    border: 3px solid #8B5A2B; border-radius: 12px;
+    font-family: inherit;
+    font-weight: bold;
+    box-shadow: 0 4px 0 #6B4226;
+    transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+  }
+  .diff-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #6B4226;
+  }
+  .diff-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #6B4226;
+  }
+  .diff-btn.easy { background: #90EE90; border-color: #2E7D32; box-shadow: 0 4px 0 #2E7D32; }
+  .diff-btn.easy:hover { box-shadow: 0 6px 0 #2E7D32; }
+  .diff-btn.easy:active { box-shadow: 0 2px 0 #2E7D32; }
+  .diff-btn.normal { background: #FFD700; border-color: #B8860B; box-shadow: 0 4px 0 #B8860B; }
+  .diff-btn.normal:hover { box-shadow: 0 6px 0 #B8860B; }
+  .diff-btn.normal:active { box-shadow: 0 2px 0 #B8860B; }
+  .diff-btn.hard { background: #FF6347; color: #fff; border-color: #8B0000; box-shadow: 0 4px 0 #8B0000; }
+  .diff-btn.hard:hover { box-shadow: 0 6px 0 #8B0000; }
+  .diff-btn.hard:active { box-shadow: 0 2px 0 #8B0000; }
+  #title-screen .gnome-preview {
+    font-size: 5rem; margin-bottom: 1.5rem;
+    animation: wobble 0.8s infinite alternate;
+  }
+  .big-btn {
+    font-size: 1.8rem; padding: 0.7em 2em;
+    background: #FF6347; color: white;
+    border: 4px solid #8B0000; border-radius: 16px;
+    font-family: inherit;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+    box-shadow: 0 6px 0 #8B0000;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .big-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 0 #8B0000;
+  }
+  .big-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #8B0000;
+  }
+
+  /* --- Game Screen --- */
+  #game-screen {
+    position: fixed; inset: 0;
+    background: linear-gradient(180deg, #87CEEB 0%, #7EC850 40%, #5DA832 100%);
+    display: none;
+  }
+  #game-screen.active { display: block; }
+
+  /* --- HUD --- */
+  #hud {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem; z-index: 10;
+  }
+  #hud-left {
+    display: flex; align-items: center; gap: 0.8rem;
+  }
+  #hud-right {
+    display: flex; align-items: center; gap: 0.8rem;
+  }
+  #score-display {
+    font-size: 1.6rem; font-weight: bold;
+    color: #fff; background: rgba(0,0,0,0.3);
+    padding: 0.4em 1em; border-radius: 12px;
+  }
+  .hud-btn {
+    font-size: 1.3rem; padding: 0.3em 0.8em;
+    background: rgba(0,0,0,0.3); color: #fff;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 10px; cursor: pointer;
+    font-family: inherit; font-weight: bold;
+    transition: background 0.15s;
+  }
+  .hud-btn:hover { background: rgba(0,0,0,0.5); }
+  #health-container {
+    display: flex; align-items: center; gap: 0.6rem;
+    background: rgba(0,0,0,0.3); padding: 0.4em 1em;
+    border-radius: 12px;
+  }
+  #health-label {
+    font-size: 1.2rem; color: #fff; font-weight: bold;
+  }
+  #health-bar-bg {
+    width: 200px; height: 22px;
+    background: #555; border-radius: 11px;
+    overflow: hidden; border: 2px solid #333;
+  }
+  #health-bar {
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, #FF4444, #FF6666);
+    border-radius: 11px;
+    transition: width 0.3s ease;
+  }
+  #health-text {
+    font-size: 1rem; color: #fff; min-width: 3em; text-align: right;
+  }
+
+  /* --- Field --- */
+  #field {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* --- Hole --- */
+  .hole {
+    position: absolute;
+    width: 160px; height: 130px;
+  }
+  .hole-mound {
+    position: absolute; bottom: 0;
+    width: 100%; height: 50%;
+    background: radial-gradient(ellipse at 50% 80%, #6B4226 0%, #8B5A2B 40%, #5C3317 100%);
+    border-radius: 50%; z-index: 3;
+    box-shadow: inset 0 -8px 15px rgba(0,0,0,0.3);
+  }
+  .hole-dark {
+    position: absolute; bottom: 10%;
+    left: 12.5%; width: 75%; height: 35%;
+    background: radial-gradient(ellipse, #1a0a00 0%, #2d1500 100%);
+    border-radius: 50%; z-index: 1;
+  }
+  .hole-clip {
+    position: absolute; bottom: 15%;
+    left: 0; right: 0; height: 85%;
+    overflow: hidden; z-index: 4;
+  }
+  .gnome-container {
+    position: absolute; bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(100%);
+    text-align: center;
+    transition: transform 0.15s ease-out;
+    pointer-events: none;
+  }
+  .gnome-container.visible {
+    transform: translateX(-50%) translateY(10%);
+    pointer-events: auto;
+  }
+  .gnome-container.hit {
+    animation: gnome-hit 0.3s ease-out forwards;
+  }
+  .gnome {
+    font-size: 3.2rem;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    transition: filter 0.15s;
+  }
+  .gnome-container.hit .gnome {
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)) brightness(1.5);
+  }
+
+  /* --- Speech Bubble --- */
+  .speech-bubble {
+    position: absolute; top: -10px; left: 50%;
+    transform: translateX(-50%) scale(0);
+    background: #fff; color: #333;
+    font-size: 1.1rem; font-weight: bold;
+    padding: 0.3em 0.7em; border-radius: 12px;
+    border: 2px solid #999;
+    white-space: nowrap;
+    opacity: 0; z-index: 20;
+    transition: transform 0.15s ease-out, opacity 0.15s;
+    pointer-events: none;
+  }
+  .speech-bubble::after {
+    content: '';
+    position: absolute; bottom: -8px; left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid #fff;
+  }
+  .speech-bubble.show {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+
+  /* --- Miss bubble (appears at click location) --- */
+  .miss-bubble {
+    position: fixed;
+    font-size: 1.4rem; font-weight: bold;
+    color: #FF6347; pointer-events: none;
+    animation: float-up 1s ease-out forwards;
+    z-index: 50;
+    text-shadow: 1px 1px 0 #fff;
+  }
+
+  /* --- Hammer --- */
+  #hammer {
+    position: fixed; z-index: 200;
+    font-size: 2.8rem;
+    pointer-events: none;
+    transform: translate(-30%, -30%) rotate(-15deg);
+    transition: transform 0.08s ease-out;
+    filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.4));
+  }
+  #hammer.smash {
+    transform: translate(-30%, -30%) rotate(30deg) scale(1.15);
+  }
+
+  /* --- Hit Stars --- */
+  .star {
+    position: fixed; pointer-events: none;
+    font-size: 1.5rem; z-index: 150;
+  }
+
+  /* --- Game Over Screen --- */
+  #game-over {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 300;
+  }
+  #game-over.active { display: flex; }
+  #game-over h2 {
+    font-size: 3.5rem; color: #FFD700;
+    text-shadow: 2px 2px 4px #000;
+    margin-bottom: 0.5rem;
+    animation: bounce 0.8s infinite alternate;
+  }
+  #game-over .final-score {
+    font-size: 2rem; color: #fff; margin-bottom: 0.3rem;
+  }
+  #game-over .final-detail {
+    font-size: 1.2rem; color: #ccc; margin-bottom: 2rem;
+  }
+  .green-btn {
+    font-size: 1.5rem; padding: 0.6em 1.8em;
+    background: #4CAF50; color: white;
+    border: 4px solid #2E7D32; border-radius: 14px;
+    font-family: inherit;
+    box-shadow: 0 5px 0 #2E7D32;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .green-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 0 #2E7D32;
+  }
+  .green-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #2E7D32;
+  }
+
+  /* --- Screen shake --- */
+  #game-screen.shake {
+    animation: shake 0.3s ease-out;
+  }
+
+  /* --- Animations --- */
+  @keyframes bounce {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-12px); }
+  }
+  @keyframes wobble {
+    from { transform: rotate(-8deg); }
+    to   { transform: rotate(8deg); }
+  }
+  @keyframes gnome-hit {
+    0%   { transform: translateX(-50%) translateY(10%) scale(1); }
+    30%  { transform: translateX(-50%) translateY(-20%) scale(1.1); }
+    100% { transform: translateX(-50%) translateY(100%) scale(0.8); }
+  }
+  @keyframes float-up {
+    0%   { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-60px) scale(1.4); opacity: 0; }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%  { transform: translateX(-8px) rotate(-1deg); }
+    40%  { transform: translateX(8px) rotate(1deg); }
+    60%  { transform: translateX(-5px); }
+    80%  { transform: translateX(5px); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Title Screen -->
+<div id="title-screen">
+  <div class="gnome-preview">🧙‍♂️</div>
+  <h1>Hammer Head</h1>
+  <p class="subtitle">Whack that gnome!</p>
+  <div id="difficulty-pick">
+    <button class="diff-btn easy" onclick="startGame('easy')">Easy</button>
+    <button class="diff-btn normal" onclick="startGame('normal')">Normal</button>
+    <button class="diff-btn hard" onclick="startGame('hard')">Hard</button>
+  </div>
+</div>
+
+<!-- Game Screen -->
+<div id="game-screen">
+  <div id="hud">
+    <div id="hud-left">
+      <button class="hud-btn" id="quit-btn" onclick="quitGame()">Quit</button>
+      <button class="hud-btn" id="mute-btn" onclick="toggleMute()">🔊</button>
+      <div id="score-display">Score: 0</div>
+    </div>
+    <div id="hud-right">
+      <div id="health-container">
+        <span id="health-label">Gnome HP:</span>
+        <div id="health-bar-bg"><div id="health-bar"></div></div>
+        <span id="health-text">10/10</span>
+      </div>
+    </div>
+  </div>
+  <div id="field"></div>
+</div>
+
+<!-- Hammer (follows mouse) -->
+<div id="hammer">🔨</div>
+
+<!-- Game Over Screen -->
+<div id="game-over">
+  <h2>You got him!</h2>
+  <div class="final-score" id="final-score">Score: 0</div>
+  <div class="final-detail" id="final-detail"></div>
+  <button class="green-btn" onclick="restartGame()">Play Again!</button>
+</div>
+
+<script>
+// --- Difficulty presets ---
+const DIFFICULTY = {
+  easy:   { visibleMin: 1500, visibleRange: 600, gapMin: 1000, gapRange: 1200 },
+  normal: { visibleMin: 1000, visibleRange: 400, gapMin: 800,  gapRange: 1000 },
+  hard:   { visibleMin: 550,  visibleRange: 250, gapMin: 400,  gapRange: 600  },
+};
+let currentDifficulty = DIFFICULTY.normal;
+
+// --- Game State ---
+const MAX_HP = 10;
+const HOLE_COUNT = 9;
+const HOLE_W = 160;
+const HOLE_H = 130;
+const HOLE_MIN_DIST = 170;
+
+let score = 0;
+let hits = 0;
+let misses = 0;
+let gnomeHP = MAX_HP;
+let activeHole = -1;
+let gnomeVisible = false;
+let gnomeTimeout = null;
+let popInterval = null;
+let gameRunning = false;
+let muted = localStorage.getItem('hammerhead-muted') === 'true';
+
+// --- DOM refs ---
+const hammer = document.getElementById('hammer');
+const field = document.getElementById('field');
+const gameScreen = document.getElementById('game-screen');
+const titleScreen = document.getElementById('title-screen');
+const gameOver = document.getElementById('game-over');
+const scoreDisplay = document.getElementById('score-display');
+const healthBar = document.getElementById('health-bar');
+const healthText = document.getElementById('health-text');
+const muteBtn = document.getElementById('mute-btn');
+
+// --- Mute ---
+function updateMuteBtn() {
+  muteBtn.textContent = muted ? '🔇' : '🔊';
+}
+function toggleMute() {
+  muted = !muted;
+  localStorage.setItem('hammerhead-muted', muted);
+  updateMuteBtn();
+  if (muted) window.speechSynthesis.cancel();
+}
+updateMuteBtn();
+
+// --- Generate random non-overlapping hole positions ---
+function generateHolePositions() {
+  const padding = 80; // keep away from edges
+  const topPadding = 100; // keep below HUD
+  const maxW = window.innerWidth - HOLE_W - padding;
+  const maxH = window.innerHeight - HOLE_H - padding;
+  const positions = [];
+  let attempts = 0;
+
+  while (positions.length < HOLE_COUNT && attempts < 2000) {
+    attempts++;
+    const x = padding + Math.random() * (maxW - padding);
+    const y = topPadding + Math.random() * (maxH - topPadding);
+
+    // Check distance from all existing holes
+    let tooClose = false;
+    for (const p of positions) {
+      const dx = p.x - x;
+      const dy = p.y - y;
+      if (Math.sqrt(dx * dx + dy * dy) < HOLE_MIN_DIST) {
+        tooClose = true;
+        break;
+      }
+    }
+    if (!tooClose) positions.push({ x, y });
+  }
+  return positions;
+}
+
+// --- Build holes ---
+let holes = [];
+function buildField() {
+  field.innerHTML = '';
+  holes = [];
+  const positions = generateHolePositions();
+
+  for (let i = 0; i < positions.length; i++) {
+    const hole = document.createElement('div');
+    hole.className = 'hole';
+    hole.style.left = positions[i].x + 'px';
+    hole.style.top = positions[i].y + 'px';
+    hole.innerHTML = `
+      <div class="speech-bubble"></div>
+      <div class="hole-clip">
+        <div class="gnome-container" data-index="${i}">
+          <div class="gnome">🧙‍♂️</div>
+        </div>
+      </div>
+      <div class="hole-dark"></div>
+      <div class="hole-mound"></div>
+    `;
+    field.appendChild(hole);
+    holes.push(hole);
+  }
+}
+
+// --- Hammer follows mouse ---
+document.addEventListener('mousemove', (e) => {
+  hammer.style.left = e.clientX + 'px';
+  hammer.style.top = e.clientY + 'px';
+});
+
+// --- Hammer smash animation on click ---
+document.addEventListener('mousedown', (e) => {
+  hammer.classList.add('smash');
+  if (gameRunning) handleClick(e);
+});
+document.addEventListener('mouseup', () => {
+  hammer.classList.remove('smash');
+});
+
+// --- Speech synthesis helper ---
+function speak(text, rate = 1.2, pitch = 1.5) {
+  if (muted) return;
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = rate;
+  utter.pitch = pitch;
+  utter.volume = 0.8;
+  window.speechSynthesis.speak(utter);
+}
+
+// --- Show speech bubble ---
+function showBubble(holeIndex, text, duration = 800) {
+  const bubble = holes[holeIndex].querySelector('.speech-bubble');
+  bubble.textContent = text;
+  bubble.classList.add('show');
+  setTimeout(() => bubble.classList.remove('show'), duration);
+}
+
+// --- Spawn gnome at random hole ---
+function spawnGnome() {
+  if (!gameRunning) return;
+
+  // Pick a random hole different from the last one
+  let newHole;
+  do {
+    newHole = Math.floor(Math.random() * holes.length);
+  } while (newHole === activeHole && holes.length > 1);
+
+  activeHole = newHole;
+  gnomeVisible = true;
+
+  const container = holes[activeHole].querySelector('.gnome-container');
+  container.classList.remove('hit');
+  container.classList.add('visible');
+
+  // Say pfffft
+  showBubble(activeHole, 'pfffft!');
+  speak('pfffft', 1.4, 1.8);
+
+  // Auto-hide after a window (gnome escapes)
+  const visibleTime = currentDifficulty.visibleMin + Math.random() * currentDifficulty.visibleRange;
+  gnomeTimeout = setTimeout(() => {
+    if (gnomeVisible && gameRunning) {
+      gnomeEscaped();
+    }
+  }, visibleTime);
+
+  // Schedule next gnome
+  const nextDelay = currentDifficulty.gapMin + Math.random() * currentDifficulty.gapRange;
+  popInterval = setTimeout(spawnGnome, visibleTime + nextDelay);
+}
+
+// --- Gnome escapes (player was too slow) ---
+function gnomeEscaped() {
+  hideGnome();
+  // The gnome laughs from wherever it was
+  showBubble(activeHole, 'lol 😂', 900);
+  setTimeout(() => speak('lol', 1.0, 2.0), 150);
+  misses++;
+}
+
+// --- Hide gnome ---
+function hideGnome() {
+  if (activeHole < 0) return;
+  const container = holes[activeHole].querySelector('.gnome-container');
+  container.classList.remove('visible');
+  gnomeVisible = false;
+}
+
+// --- Handle click ---
+function handleClick(e) {
+  // Ignore clicks on HUD buttons
+  if (e.target.closest('#hud')) return;
+
+  // Check if we clicked on the gnome
+  const clickedGnome = e.target.closest('.gnome-container.visible');
+
+  if (clickedGnome) {
+    // HIT!
+    clearTimeout(gnomeTimeout);
+    const idx = parseInt(clickedGnome.dataset.index);
+
+    score++;
+    hits++;
+    gnomeHP--;
+    gnomeVisible = false;
+
+    // Visual feedback
+    clickedGnome.classList.add('hit');
+    showBubble(idx, 'ouuuuch! 😵', 900);
+    speak('ouuuuch', 0.8, 1.2);
+    spawnStars(e.clientX, e.clientY);
+
+    // Update HUD
+    updateHUD();
+
+    // After hit animation, hide
+    setTimeout(() => {
+      clickedGnome.classList.remove('visible', 'hit');
+    }, 300);
+
+    // Check game over
+    if (gnomeHP <= 0) {
+      endGame();
+    }
+  } else if (gnomeVisible) {
+    // Missed - clicked wrong spot while gnome is showing
+    misses++;
+    showMissBubble(e.clientX, e.clientY);
+    shakeScreen();
+
+    // Gnome laughs
+    if (activeHole >= 0) {
+      showBubble(activeHole, 'lol 😂', 900);
+      setTimeout(() => speak('lol', 1.0, 2.0), 100);
+    }
+  }
+}
+
+// --- HUD update ---
+function updateHUD() {
+  scoreDisplay.textContent = `Score: ${score}`;
+  const pct = (gnomeHP / MAX_HP) * 100;
+  healthBar.style.width = pct + '%';
+  healthText.textContent = `${gnomeHP}/${MAX_HP}`;
+
+  if (pct <= 30) {
+    healthBar.style.background = 'linear-gradient(90deg, #FF0000, #FF4444)';
+  } else if (pct <= 60) {
+    healthBar.style.background = 'linear-gradient(90deg, #FF8800, #FFAA44)';
+  } else {
+    healthBar.style.background = 'linear-gradient(90deg, #FF4444, #FF6666)';
+  }
+}
+
+// --- Spawn stars at hit location ---
+function spawnStars(x, y) {
+  const emojis = ['⭐', '💥', '✨', '🌟'];
+  for (let i = 0; i < 6; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    star.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    star.style.left = x + 'px';
+    star.style.top = y + 'px';
+    const angle = (Math.PI * 2 * i) / 6;
+    const dist = 40 + Math.random() * 50;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist;
+    star.animate([
+      { transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: `translate(${dx}px,${dy}px) scale(0.3)`, opacity: 0 }
+    ], { duration: 500, easing: 'ease-out' });
+    document.body.appendChild(star);
+    setTimeout(() => star.remove(), 600);
+  }
+}
+
+// --- Miss bubble at click location ---
+function showMissBubble(x, y) {
+  const bubble = document.createElement('div');
+  bubble.className = 'miss-bubble';
+  bubble.textContent = 'Miss!';
+  bubble.style.left = x + 'px';
+  bubble.style.top = y + 'px';
+  document.body.appendChild(bubble);
+  setTimeout(() => bubble.remove(), 1000);
+}
+
+// --- Screen shake ---
+function shakeScreen() {
+  gameScreen.classList.remove('shake');
+  void gameScreen.offsetWidth;
+  gameScreen.classList.add('shake');
+  setTimeout(() => gameScreen.classList.remove('shake'), 300);
+}
+
+// --- Stop all timers ---
+function stopTimers() {
+  clearTimeout(gnomeTimeout);
+  clearTimeout(popInterval);
+  gnomeTimeout = null;
+  popInterval = null;
+}
+
+// --- Start game ---
+let lastDifficulty = 'normal';
+function startGame(difficulty) {
+  if (difficulty) lastDifficulty = difficulty;
+  currentDifficulty = DIFFICULTY[lastDifficulty];
+
+  score = 0;
+  hits = 0;
+  misses = 0;
+  gnomeHP = MAX_HP;
+  activeHole = -1;
+  gnomeVisible = false;
+  gameRunning = true;
+
+  buildField();
+  updateHUD();
+  titleScreen.classList.add('hidden');
+  gameScreen.classList.add('active');
+  gameOver.classList.remove('active');
+
+  setTimeout(spawnGnome, 1000);
+}
+
+// --- Quit game (back to title) ---
+function quitGame() {
+  gameRunning = false;
+  stopTimers();
+  gnomeVisible = false;
+
+  document.querySelectorAll('.gnome-container').forEach(c => {
+    c.classList.remove('visible', 'hit');
+  });
+
+  gameScreen.classList.remove('active');
+  titleScreen.classList.remove('hidden');
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+}
+
+// --- End game ---
+function endGame() {
+  gameRunning = false;
+  stopTimers();
+  gnomeVisible = false;
+
+  document.querySelectorAll('.gnome-container').forEach(c => {
+    c.classList.remove('visible');
+  });
+
+  setTimeout(() => {
+    document.getElementById('final-score').textContent = `Final Score: ${score}`;
+    document.getElementById('final-detail').textContent =
+      `${hits} hits, ${misses} misses  |  Accuracy: ${hits > 0 ? Math.round(hits / (hits + misses) * 100) : 0}%`;
+    gameOver.classList.add('active');
+    speak('oh no!', 0.7, 0.8);
+  }, 500);
+}
+
+// --- Restart ---
+function restartGame() {
+  gameOver.classList.remove('active');
+  startGame();
+}
+</script>
+</body>
+</html>
