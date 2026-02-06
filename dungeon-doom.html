@@ -390,6 +390,9 @@
   #game-over .stat-line {
     font-size: 1.3rem; color: #ccc; margin-bottom: 0.3rem;
   }
+  #game-over .stat-line.go-seed {
+    font-size: 0.9rem; color: #888; margin-top: 0.5rem;
+  }
   #game-over .stat-line.big {
     font-size: 1.6rem; color: #fff; margin-bottom: 0.5rem;
   }
@@ -467,7 +470,6 @@
   <div class="controls-guide">
     <div class="control-item"><kbd>Space</kbd> / <kbd>Up</kbd> Jump</div>
     <div class="control-item"><kbd>Ctrl</kbd> / <kbd>Down</kbd> Duck</div>
-    <div class="control-item"><kbd>V</kbd> Spin Jump</div>
     <div class="control-item"><kbd>D</kbd> Throw Fire</div>
   </div>
   <div id="difficulty-pick">
@@ -530,6 +532,7 @@
   <div class="stat-line" id="go-time"></div>
   <div class="stat-line" id="go-obstacles"></div>
   <div class="stat-line" id="go-fireballs"></div>
+  <div class="stat-line go-seed" id="go-seed"></div>
   <div class="go-buttons">
     <button class="green-btn" onclick="restartGame()">Play Again!</button>
     <a href="index.html" class="home-link">Back to Games</a>
@@ -566,7 +569,8 @@ function getTodayStr() {
 let rng = null; // seeded random, replaces Math.random() during gameplay
 
 // Show today's date on title
-document.getElementById('daily-seed').textContent = 'Daily Dungeon: ' + getTodayStr();
+const todayStr = getTodayStr();
+document.getElementById('daily-seed').textContent = 'Daily Seed: ' + todayStr;
 
 // ============================================================
 // DIFFICULTY PRESETS
@@ -643,6 +647,9 @@ let duckTimer = 0;
 const DUCK_DURATION = 0.6; // same as jump airtime
 let playerSpinning = false;
 let spinTimer = 0;
+let wasSpinJump = false;
+let spinCooldown = 0;
+const SPIN_COOLDOWN = 2.0;
 let invincibleTimer = 0;
 let fireballs = 0;
 
@@ -1078,24 +1085,24 @@ function calcLayout() {
 document.addEventListener('contextmenu', e => e.preventDefault());
 
 document.addEventListener('keydown', e => {
+  // Always prevent default for game keys (avoid page scroll during intro)
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ControlLeft', 'ControlRight', 'KeyS', 'KeyD'].includes(e.code)) {
+    e.preventDefault();
+  }
   if (!gameRunning) return;
   keysDown[e.code] = true;
   if (e.code === 'Space' || e.code === 'ArrowUp') {
-    e.preventDefault();
     if (!jumpPressed) { jumpPressed = true; inputJump = true; }
   }
   if (e.code === 'ControlLeft' || e.code === 'ControlRight' || e.code === 'ArrowDown') {
-    e.preventDefault();
     if (!duckPressed) { duckPressed = true; inputDuck = true; }
   }
-  if (e.code === 'KeyV') {
-    e.preventDefault();
+  if (e.code === 'KeyS') {
     // Spin jump = Jump + Duck simultaneously
     if (!jumpPressed) { jumpPressed = true; inputJump = true; }
     if (!duckPressed) { duckPressed = true; inputDuck = true; }
   }
   if (e.code === 'KeyD') {
-    e.preventDefault();
     if (!destroyPressed) { destroyPressed = true; inputDestroy = true; }
   }
 });
@@ -1104,14 +1111,14 @@ document.addEventListener('keyup', e => {
   keysDown[e.code] = false;
   if (e.code === 'Space' || e.code === 'ArrowUp') {
     // Only clear jump if no other jump key is held
-    if (!keysDown['Space'] && !keysDown['ArrowUp'] && !keysDown['KeyV']) jumpPressed = false;
+    if (!keysDown['Space'] && !keysDown['ArrowUp'] && !keysDown['KeyS']) jumpPressed = false;
   }
   if (e.code === 'ControlLeft' || e.code === 'ControlRight' || e.code === 'ArrowDown') {
-    if (!keysDown['ControlLeft'] && !keysDown['ControlRight'] && !keysDown['ArrowDown'] && !keysDown['KeyV']) {
+    if (!keysDown['ControlLeft'] && !keysDown['ControlRight'] && !keysDown['ArrowDown'] && !keysDown['KeyS']) {
       duckPressed = false; inputDuck = false;
     }
   }
-  if (e.code === 'KeyV') {
+  if (e.code === 'KeyS') {
     // Only clear flags if no other key for that action is held
     if (!keysDown['Space'] && !keysDown['ArrowUp']) jumpPressed = false;
     if (!keysDown['ControlLeft'] && !keysDown['ControlRight'] && !keysDown['ArrowDown']) {
@@ -1132,7 +1139,7 @@ document.addEventListener('mousedown', e => {
   }
 });
 document.addEventListener('mouseup', e => {
-  if (e.button === 0) { jumpPressed = false; }
+  if (e.button === 0) jumpPressed = false;
   if (e.button === 2) { duckPressed = false; inputDuck = false; }
 });
 
@@ -1153,15 +1160,15 @@ function setupBtn(btn, onDown, onUp) {
 }
 
 setupBtn(btnJump,
-  () => { jumpPressed = true; inputJump = true; btnJump.classList.add('pressed'); },
+  () => { if (!gameRunning) return; jumpPressed = true; inputJump = true; btnJump.classList.add('pressed'); },
   () => { jumpPressed = false; btnJump.classList.remove('pressed'); }
 );
 setupBtn(btnDuck,
-  () => { duckPressed = true; inputDuck = true; btnDuck.classList.add('pressed'); },
+  () => { if (!gameRunning) return; duckPressed = true; inputDuck = true; btnDuck.classList.add('pressed'); },
   () => { duckPressed = false; inputDuck = false; btnDuck.classList.remove('pressed'); }
 );
 setupBtn(btnDestroy,
-  () => { destroyPressed = true; inputDestroy = true; btnDestroy.classList.add('pressed'); },
+  () => { if (!gameRunning) return; destroyPressed = true; inputDestroy = true; btnDestroy.classList.add('pressed'); },
   () => { destroyPressed = false; btnDestroy.classList.remove('pressed'); }
 );
 
@@ -1486,10 +1493,11 @@ function gameLoop(timestamp) {
   }
 
   // --- 2. Handle jump input ---
-  if (inputJump && inputDuck && !playerJumping) {
+  if (inputJump && inputDuck && !playerJumping && spinCooldown <= 0) {
     // Spin jump
     playerJumping = true;
     playerSpinning = true;
+    wasSpinJump = true;
     spinTimer = 0.5;
     playerVelY = 650;
     playerDucking = false;
@@ -1532,6 +1540,7 @@ function gameLoop(timestamp) {
     if (playerY <= 0) {
       playerY = 0;
       playerVelY = 0;
+      if (wasSpinJump) { spinCooldown = SPIN_COOLDOWN; wasSpinJump = false; }
       playerJumping = false;
     }
   }
@@ -1541,6 +1550,8 @@ function gameLoop(timestamp) {
     spinTimer -= dt;
     if (spinTimer <= 0) playerSpinning = false;
   }
+  // Spin cooldown
+  if (spinCooldown > 0) spinCooldown -= dt;
 
   // Invincibility timer
   if (invincibleTimer > 0) invincibleTimer -= dt;
@@ -1903,7 +1914,7 @@ function beginGame(diffKey) {
   currentDiff = DIFFICULTY[diffKey];
 
   // Seed RNG
-  rng = mulberry32(dateSeed(getTodayStr(), diffKey));
+  rng = mulberry32(dateSeed(todayStr, diffKey));
 
   titleScreen.classList.add('hidden');
   playIntro(() => {
@@ -1912,7 +1923,6 @@ function beginGame(diffKey) {
 }
 
 function startGameplay() {
-  gameRunning = true;
   score = 0;
   obstaclesDodged = 0;
   fireballsThrown = 0;
@@ -1924,6 +1934,8 @@ function startGameplay() {
   duckTimer = 0;
   playerSpinning = false;
   spinTimer = 0;
+  wasSpinJump = false;
+  spinCooldown = 0;
   invincibleTimer = 0;
   fireballs = 0;
   boulderHP = BOULDER_MAX_HP;
@@ -1956,6 +1968,14 @@ function startGameplay() {
   startMusic();
   gameStartTime = performance.now();
   lastFrameTime = performance.now();
+
+  // Clear any input flags accumulated during intro, then enable game
+  jumpPressed = false; inputJump = false;
+  duckPressed = false; inputDuck = false;
+  destroyPressed = false; inputDestroy = false;
+  for (const k in keysDown) keysDown[k] = false;
+  gameRunning = true;
+
   animFrameId = requestAnimationFrame(gameLoop);
 }
 
@@ -2005,6 +2025,7 @@ function showGameOver(victory) {
   document.getElementById('go-time').textContent = 'Time: ' + timeSec + 's';
   document.getElementById('go-obstacles').textContent = 'Obstacles dodged: ' + obstaclesDodged;
   document.getElementById('go-fireballs').textContent = 'Fireballs thrown: ' + fireballsThrown;
+  document.getElementById('go-seed').textContent = 'Daily Seed: ' + todayStr;
   gameOverScreen.classList.add('active');
 }
 
@@ -2012,7 +2033,7 @@ function restartGame() {
   gameOverScreen.classList.remove('active');
   gameScreen.classList.remove('active');
   // Re-seed for fresh daily run
-  rng = mulberry32(dateSeed(getTodayStr(), lastDiffKey));
+  rng = mulberry32(dateSeed(todayStr, lastDiffKey));
   startGameplay();
 }
 

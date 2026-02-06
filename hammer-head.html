@@ -81,6 +81,9 @@
     object-fit: cover;
     vertical-align: middle;
   }
+  #title-screen .daily-seed {
+    font-size: 0.95rem; color: #6B4226; opacity: 0.7; margin-bottom: 1.2rem;
+  }
   #title-screen .gnome-preview {
     font-size: 5rem; margin-bottom: 1.5rem;
     animation: wobble 0.8s infinite alternate;
@@ -254,6 +257,45 @@
   .gnome-container.hit .gnome {
     filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)) brightness(1.5);
   }
+  /* --- Charge indicator (wind-up hold) --- */
+  .gnome-container.charging .gnome {
+    animation: charge-pulse 0.15s ease-in-out infinite alternate;
+  }
+  .gnome-container.charging::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 50%;
+    width: 0; height: 0;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    border: 3px solid rgba(255, 100, 50, 0.8);
+    box-shadow: 0 0 8px rgba(255, 100, 50, 0.5);
+    animation: charge-ring var(--charge-duration, 0.3s) ease-out forwards;
+    pointer-events: none;
+    z-index: 10;
+  }
+  @keyframes charge-pulse {
+    from { transform: scale(1); }
+    to   { transform: scale(1.12); }
+  }
+  @keyframes charge-ring {
+    0%   { width: 0; height: 0; opacity: 0.4; }
+    100% { width: 120%; height: 120%; opacity: 1; }
+  }
+
+  .gnome-container.golden .gnome {
+    filter: drop-shadow(0 0 12px rgba(255,215,0,0.8)) drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    animation: golden-glow 0.5s infinite alternate;
+  }
+  /* Override golden glow during charge */
+  .gnome-container.golden.charging .gnome {
+    animation: charge-pulse 0.15s ease-in-out infinite alternate;
+    filter: drop-shadow(0 0 12px rgba(255,215,0,0.8)) drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+  }
+  @keyframes golden-glow {
+    from { filter: drop-shadow(0 0 8px rgba(255,215,0,0.6)) drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
+    to   { filter: drop-shadow(0 0 18px rgba(255,215,0,1)) drop-shadow(0 4px 6px rgba(0,0,0,0.3)) brightness(1.15); }
+  }
 
   /* --- Speech Bubble --- */
   .speech-bubble {
@@ -352,7 +394,10 @@
     font-size: 1.6rem; color: #fff; margin-bottom: 0.3rem;
   }
   #game-over .final-detail {
-    font-size: 1.2rem; color: #ccc; margin-bottom: 2rem;
+    font-size: 1.2rem; color: #ccc; margin-bottom: 0.3rem;
+  }
+  #game-over .final-seed {
+    font-size: 0.9rem; color: #888; margin-bottom: 1.5rem;
   }
   .green-btn {
     font-size: 1.5rem; padding: 0.6em 1.8em;
@@ -436,6 +481,7 @@
   <div class="gnome-preview">🧙‍♂️</div>
   <h1>Hammer Head</h1>
   <p class="subtitle">Whack that gnome!</p>
+  <p class="daily-seed" id="daily-seed"></p>
   <div id="difficulty-pick">
     <button class="diff-btn easy" onclick="startGame('easy')">Easy</button>
     <button class="diff-btn normal" onclick="startGame('normal')">Normal</button>
@@ -477,6 +523,7 @@
   <div class="final-score" id="final-score">Score: 0</div>
   <div class="final-detail" id="final-bonus"></div>
   <div class="final-detail" id="final-detail"></div>
+  <div class="final-seed" id="final-seed"></div>
   <button class="green-btn" onclick="restartGame()">Play Again!</button>
   <a href="index.html" class="home-link" style="margin-top: 1rem;">Back to Games</a>
 </div>
@@ -485,15 +532,44 @@
 // --- Game State ---
 const MAX_HP = 10;
 
+// --- Seeded RNG (daily seed — same day + difficulty = same patterns) ---
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function dateSeed(dateStr, difficulty) {
+  let h = 0;
+  const s = dateStr + ':' + difficulty;
+  for (let i = 0; i < s.length; i++) {
+    h = Math.imul(31, h) + s.charCodeAt(i) | 0;
+  }
+  return h;
+}
+function getTodayStr() {
+  const d = new Date();
+  return d.getUTCFullYear() + '-' +
+    String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getUTCDate()).padStart(2, '0');
+}
+let rng = null;
+const todayStr = getTodayStr();
+
+// Show today's seed on title screen
+document.getElementById('daily-seed').textContent = 'Daily Seed: ' + todayStr;
+
 // --- Difficulty presets ---
 const DIFFICULTY = {
-  easy:   { visibleMin: 1500, visibleRange: 600, gapMin: 1000, gapRange: 1200, missHeal: 0,
+  easy:   { visibleMin: 1800, visibleRange: 700, gapMin: 1000, gapRange: 1200, missHeal: 0,
             missPenalty: 25, grass: ['#87CEEB', '#7EC850', '#5DA832'], label: 'Easy' },
-  normal: { visibleMin: 1000, visibleRange: 400, gapMin: 800,  gapRange: 1000, missHeal: 2,
+  normal: { visibleMin: 1300, visibleRange: 500, gapMin: 800,  gapRange: 1000, missHeal: 2,
             missPenalty: 50, grass: ['#87CEEB', '#C8B850', '#8B7D28'], label: 'Normal' },
-  hard:   { visibleMin: 550,  visibleRange: 250, gapMin: 400,  gapRange: 600,  missHeal: MAX_HP,
+  hard:   { visibleMin: 850,  visibleRange: 300, gapMin: 400,  gapRange: 600,  missHeal: MAX_HP,
             missPenalty: 75, grass: ['#8B9EAB', '#A85A50', '#6B3028'], label: 'Hard', gnomesPerRound: 1 },
-  achal:  { visibleMin: 1200, visibleRange: 400, gapMin: 600,  gapRange: 800,  missHeal: MAX_HP,
+  achal:  { visibleMin: 1500, visibleRange: 500, gapMin: 600,  gapRange: 800,  missHeal: MAX_HP,
             missPenalty: 100, grass: ['#FF69B4', '#9B59B6', '#6C3483'], label: 'Achal Anna', gnomesPerRound: 2 },
 };
 let currentDifficulty = DIFFICULTY.normal;
@@ -528,6 +604,13 @@ let gameStartTime = 0;
 let elapsedTime = 0;
 let timerInterval = null;
 let muted = localStorage.getItem('hammerhead-muted') === 'true';
+
+// --- Charge (wind-up hold) state ---
+let chargeTarget = null;        // gnome-container element being charged
+let chargeStartTime = 0;        // Date.now() when charge began
+let chargeIsTouch = false;      // was this charge initiated by touch?
+const CHARGE_MS_TOUCH = 300;    // touch charge duration
+const CHARGE_MS_MOUSE = 100;    // mouse charge duration (cursor travel is the real cost)
 
 // --- DOM refs ---
 const hammer = document.getElementById('hammer');
@@ -566,8 +649,9 @@ function generateHolePositions(params) {
 
   while (positions.length < params.count && attempts < 2000) {
     attempts++;
-    const x = padding + Math.random() * (maxW - padding);
-    const y = topPadding + Math.random() * (maxH - topPadding);
+    const rand = rng || Math.random;
+    const x = padding + rand() * (maxW - padding);
+    const y = topPadding + rand() * (maxH - topPadding);
 
     let tooClose = false;
     for (const p of positions) {
@@ -622,11 +706,18 @@ if (hasTouch && !window.matchMedia('(pointer: fine)').matches) {
   hammer.classList.add('hidden');
 }
 
-// Mouse: hammer follows cursor
+// Mouse: hammer follows cursor + cancel charge if moved off gnome
 document.addEventListener('mousemove', (e) => {
   if (!hammer.classList.contains('hidden')) {
     hammer.style.left = e.clientX + 'px';
     hammer.style.top = e.clientY + 'px';
+  }
+  // Cancel charge if mouse moves off the charged gnome
+  if (chargeTarget) {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el || !el.closest('.gnome-container') || el.closest('.gnome-container') !== chargeTarget) {
+      cancelCharge();
+    }
   }
 });
 
@@ -634,11 +725,12 @@ document.addEventListener('mousedown', (e) => {
   if (!hammer.classList.contains('hidden')) {
     hammer.classList.add('smash');
   }
-  if (gameRunning) handleTap(e.clientX, e.clientY, e.target);
+  if (gameRunning) handlePress(e.clientX, e.clientY, e.target, false);
 });
 
-document.addEventListener('mouseup', () => {
+document.addEventListener('mouseup', (e) => {
   hammer.classList.remove('smash');
+  if (gameRunning) handleRelease(e.clientX, e.clientY);
 });
 
 // Touch: show tap-flash hammer at touch point
@@ -654,12 +746,26 @@ document.addEventListener('touchstart', (e) => {
   // Show a brief hammer animation at tap point
   showTapFlash(touch.clientX, touch.clientY);
 
-  if (gameRunning) handleTap(touch.clientX, touch.clientY, target);
+  if (gameRunning) handlePress(touch.clientX, touch.clientY, target, true);
 }, { passive: false });
 
-// Prevent unwanted gestures on the game field
+document.addEventListener('touchend', (e) => {
+  if (!gameRunning) return;
+  // Use changedTouches for the released finger
+  const touch = e.changedTouches[0];
+  handleRelease(touch.clientX, touch.clientY);
+}, { passive: false });
+
+// Prevent unwanted gestures on the game field; cancel charge if finger moves off gnome
 document.addEventListener('touchmove', (e) => {
   if (gameRunning) e.preventDefault();
+  if (chargeTarget) {
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (!el || !el.closest('.gnome-container') || el.closest('.gnome-container') !== chargeTarget) {
+      cancelCharge();
+    }
+  }
 }, { passive: false });
 
 function showTapFlash(x, y) {
@@ -899,6 +1005,25 @@ function stopMusic() {
   }
 }
 
+// Golden gnome sparkle sound
+function playSparkle() {
+  const ctx = getAudioCtx();
+  const notes = [1047, 1319, 1568, 2093];
+  notes.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    const start = ctx.currentTime + i * 0.08;
+    gain.gain.setValueAtTime(0.15, start);
+    gain.gain.exponentialRampToValueAtTime(0.01, start + 0.15);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + 0.18);
+  });
+}
+
 // Unified speak() replacement - maps text to sound effects
 function speak(text) {
   if (muted) return;
@@ -907,6 +1032,7 @@ function speak(text) {
     case 'ouuuuch': playOuch(); break;
     case 'lol': playLol(); break;
     case 'oh no!': playOhNo(); break;
+    case 'sparkle': playSparkle(); break;
   }
 }
 
@@ -918,6 +1044,9 @@ function showBubble(holeIndex, text, duration = 800) {
   setTimeout(() => bubble.classList.remove('show'), duration);
 }
 
+// --- Golden gnome state ---
+let goldenActive = false; // is the current round a golden gnome?
+
 // --- Spawn gnome(s) at random hole(s) ---
 function spawnGnome() {
   if (!gameRunning) return;
@@ -928,26 +1057,33 @@ function spawnGnome() {
   gnomeVisible = true;
   gnomeAppearedAt = Date.now();
 
-  // Pick N different random holes
+  // Hard/Achal: 12% chance to spawn a golden gnome (single, replaces normal round)
+  const forceGolden = new URLSearchParams(window.location.search).get('golden') === 'true';
+  const isHardPlus = currentDifficulty === DIFFICULTY.hard || currentDifficulty === DIFFICULTY.achal;
+  goldenActive = forceGolden || (isHardPlus && rng() < 0.12);
+
+  // Pick N different random holes (golden = always 1)
+  const spawnCount = goldenActive ? 1 : count;
   const available = [];
   for (let i = 0; i < holes.length; i++) available.push(i);
-  for (let i = 0; i < count && available.length > 0; i++) {
-    const pick = Math.floor(Math.random() * available.length);
+  for (let i = 0; i < spawnCount && available.length > 0; i++) {
+    const pick = Math.floor(rng() * available.length);
     const holeIdx = available.splice(pick, 1)[0];
     activeHoles.push(holeIdx);
 
     const container = holes[holeIdx].querySelector('.gnome-container');
-    container.classList.remove('hit');
+    container.classList.remove('hit', 'golden');
+    if (goldenActive) container.classList.add('golden');
     container.classList.add('visible');
-    showBubble(holeIdx, 'pfffft!');
+    showBubble(holeIdx, goldenActive ? '✨' : 'pfffft!');
   }
-  speak('pfffft');
+  speak(goldenActive ? 'sparkle' : 'pfffft');
 
   // Auto-hide after a window (gnomes escape)
   // In Achal Anna mode, visible time shrinks as gnome HP drops
   const hpRatio = gnomeHP / MAX_HP;
   const hpScale = (currentDifficulty.gnomesPerRound || 1) > 1 ? (0.4 + 0.6 * hpRatio) : 1;
-  const visibleTime = (currentDifficulty.visibleMin + Math.random() * currentDifficulty.visibleRange) * hpScale;
+  const visibleTime = (currentDifficulty.visibleMin + rng() * currentDifficulty.visibleRange) * hpScale;
   gnomeTimeout = setTimeout(() => {
     if (gnomeVisible && gameRunning) {
       gnomeEscaped();
@@ -955,7 +1091,7 @@ function spawnGnome() {
   }, visibleTime);
 
   // Schedule next round
-  const nextDelay = currentDifficulty.gapMin + Math.random() * currentDifficulty.gapRange;
+  const nextDelay = currentDifficulty.gapMin + rng() * currentDifficulty.gapRange;
   popInterval = setTimeout(spawnGnome, visibleTime + nextDelay);
 
   // Achal Anna mode: below 4 HP, one gnome randomly relocates mid-round
@@ -971,8 +1107,11 @@ function spawnGnome() {
       if (stillVisible.length === 0) return;
 
       // Pick one to relocate
-      const victim = stillVisible[Math.floor(Math.random() * stillVisible.length)];
-      holes[victim].querySelector('.gnome-container').classList.remove('visible');
+      const victim = stillVisible[Math.floor(rng() * stillVisible.length)];
+      const victimContainer = holes[victim].querySelector('.gnome-container');
+      // Cancel charge if this gnome was being charged
+      if (chargeTarget === victimContainer) cancelCharge();
+      victimContainer.classList.remove('visible');
 
       // Pick a new hole not currently active
       const freeHoles = [];
@@ -981,7 +1120,7 @@ function spawnGnome() {
       }
       if (freeHoles.length === 0) return;
 
-      const newIdx = freeHoles[Math.floor(Math.random() * freeHoles.length)];
+      const newIdx = freeHoles[Math.floor(rng() * freeHoles.length)];
       activeHoles[activeHoles.indexOf(victim)] = newIdx;
 
       const newContainer = holes[newIdx].querySelector('.gnome-container');
@@ -1005,6 +1144,11 @@ function spawnGnome() {
 
 // --- Gnome(s) escape (player was too slow) ---
 function gnomeEscaped() {
+  // Golden gnome escaping = good! No penalty.
+  if (goldenActive) {
+    hideAllGnomes();
+    return;
+  }
   // Show laugh on all remaining visible gnomes
   for (const idx of activeHoles) {
     const container = holes[idx].querySelector('.gnome-container');
@@ -1025,9 +1169,12 @@ function gnomeEscaped() {
 function hideAllGnomes() {
   for (const idx of activeHoles) {
     const container = holes[idx].querySelector('.gnome-container');
-    container.classList.remove('visible');
+    // Cancel charge if this gnome was being charged
+    if (chargeTarget === container) cancelCharge();
+    container.classList.remove('visible', 'golden');
   }
   gnomeVisible = false;
+  goldenActive = false;
 }
 
 // --- Heal gnome on miss ---
@@ -1039,68 +1186,41 @@ function healGnomeOnMiss() {
   if (gnomeHP !== before) updateHUD();
 }
 
-// --- Handle tap (unified mouse + touch) ---
-function handleTap(x, y, target) {
+// --- Cancel active charge (no penalty) ---
+function cancelCharge() {
+  if (!chargeTarget) return;
+  chargeTarget.classList.remove('charging');
+  chargeTarget = null;
+  chargeStartTime = 0;
+}
+
+// --- Handle press (mousedown / touchstart) ---
+function handlePress(x, y, target, isTouch) {
   if (!target) return;
 
   // Ignore taps on HUD buttons
   if (target.closest('#hud')) return;
 
-  // Check if we tapped on the gnome
+  // Check if we pressed on a visible gnome
   const clickedGnome = target.closest('.gnome-container.visible');
 
   if (clickedGnome) {
     const idx = parseInt(clickedGnome.dataset.index);
     if (!activeHoles.includes(idx)) return;
 
-    // Speed bonus: faster reaction = more points (10-100)
-    const reactionMs = Date.now() - gnomeAppearedAt;
-    const maxWindow = currentDifficulty.visibleMin + currentDifficulty.visibleRange;
-    const speedFactor = Math.max(0, 1 - reactionMs / maxWindow);
-    const basePoints = Math.ceil(10 + 90 * speedFactor);
+    // Start charging this gnome
+    cancelCharge(); // cancel any prior charge
+    chargeTarget = clickedGnome;
+    chargeStartTime = Date.now();
+    chargeIsTouch = isTouch;
 
-    // Combo: consecutive hits multiply points
-    combo++;
-    const comboMultiplier = Math.min(combo, 5);
-    const hitPoints = basePoints * comboMultiplier;
-
-    score += hitPoints;
-    hits++;
-    roundHitsCount++;
-
-    // Visual feedback for individual gnome
-    clickedGnome.classList.add('hit');
-    showBubble(idx, 'ouuuuch! 😵', 900);
-    speak('ouuuuch');
-    spawnStars(x, y);
-    showScorePopup(x, y, hitPoints, comboMultiplier);
-
-    // After hit animation, hide this gnome
-    setTimeout(() => {
-      clickedGnome.classList.remove('visible', 'hit');
-    }, 300);
-
-    const gnomesNeeded = currentDifficulty.gnomesPerRound || 1;
-
-    if (roundHitsCount >= gnomesNeeded) {
-      // Round complete - all gnomes hit! HP decreases
-      clearTimeout(gnomeTimeout);
-      clearTimeout(relocateTimeout);
-      gnomeHP--;
-      gnomeVisible = false;
-      updateHUD();
-      updateCombo();
-
-      if (gnomeHP <= 0) {
-        endGame();
-      }
-    } else {
-      // Partial hit - still more gnomes to whack this round
-      updateHUD();
-      updateCombo();
-    }
+    // Set CSS custom property for ring animation duration
+    const durationMs = isTouch ? CHARGE_MS_TOUCH : CHARGE_MS_MOUSE;
+    clickedGnome.style.setProperty('--charge-duration', durationMs + 'ms');
+    clickedGnome.classList.add('charging');
   } else if (gnomeVisible) {
-    // Missed - tapped wrong spot while gnome(s) showing
+    // Missed - tapped empty space while gnome(s) showing (instant miss, no charge)
+    cancelCharge();
     clearTimeout(gnomeTimeout);
     clearTimeout(relocateTimeout);
     misses++;
@@ -1120,6 +1240,122 @@ function handleTap(x, y, target) {
     showMissBubble(x, y);
     shakeScreen();
     setTimeout(() => speak('lol'), 100);
+  }
+}
+
+// --- Handle release (mouseup / touchend) ---
+function handleRelease(x, y) {
+  if (!chargeTarget) return;
+
+  const target = chargeTarget;
+  const elapsed = Date.now() - chargeStartTime;
+  const required = chargeIsTouch ? CHARGE_MS_TOUCH : CHARGE_MS_MOUSE;
+
+  // Clean up charging state
+  target.classList.remove('charging');
+  chargeTarget = null;
+  chargeStartTime = 0;
+
+  // If gnome is no longer visible (escaped/relocated during charge), no penalty
+  if (!target.classList.contains('visible')) return;
+
+  const idx = parseInt(target.dataset.index);
+  if (!activeHoles.includes(idx)) return;
+
+  if (elapsed >= required) {
+    // Charge complete — process hit!
+    processHit(target, idx, x, y);
+  } else {
+    // Released too early — miss!
+    misses++;
+    combo = 0;
+    updateCombo();
+    healGnomeOnMiss();
+    showMissBubble(x, y);
+    applyMissPenalty(x, y);
+    showBubble(idx, 'too fast! 😏', 900);
+    shakeScreen();
+    setTimeout(() => speak('lol'), 100);
+  }
+}
+
+// --- Process a successful hit on a gnome ---
+function processHit(clickedGnome, idx, x, y) {
+  clickedGnome.classList.remove('charging');
+
+  // Golden gnome: TRAP — no points, combo reset, shuffle holes
+  if (goldenActive) {
+    clickedGnome.classList.add('hit');
+    showBubble(idx, 'lol 😂 SHUFFLE!', 1200);
+    speak('lol');
+    shakeScreen();
+
+    combo = 0;
+    updateCombo();
+
+    clearTimeout(gnomeTimeout);
+    clearTimeout(relocateTimeout);
+    clearTimeout(popInterval);
+    gnomeVisible = false;
+    goldenActive = false;
+    updateHUD();
+
+    // Rebuild field after brief delay
+    setTimeout(() => {
+      if (!gameRunning) return;
+      buildField();
+      shakeScreen();
+      const nextDelay = currentDifficulty.gapMin + rng() * currentDifficulty.gapRange;
+      popInterval = setTimeout(spawnGnome, nextDelay);
+    }, 500);
+    return;
+  }
+
+  // Speed bonus: faster reaction = more points (10-100)
+  const reactionMs = Date.now() - gnomeAppearedAt;
+  const maxWindow = currentDifficulty.visibleMin + currentDifficulty.visibleRange;
+  const speedFactor = Math.max(0, 1 - reactionMs / maxWindow);
+  const basePoints = Math.ceil(10 + 90 * speedFactor);
+
+  // Combo: consecutive hits multiply points
+  combo++;
+  const comboMultiplier = Math.min(combo, 5);
+  const hitPoints = basePoints * comboMultiplier;
+
+  score += hitPoints;
+  hits++;
+  roundHitsCount++;
+
+  // Visual feedback for individual gnome
+  clickedGnome.classList.add('hit');
+  showBubble(idx, 'ouuuuch! 😵', 900);
+  speak('ouuuuch');
+  spawnStars(x, y);
+  showScorePopup(x, y, hitPoints, comboMultiplier);
+
+  // After hit animation, hide this gnome
+  setTimeout(() => {
+    clickedGnome.classList.remove('visible', 'hit');
+  }, 300);
+
+  const gnomesNeeded = currentDifficulty.gnomesPerRound || 1;
+
+  if (roundHitsCount >= gnomesNeeded) {
+    // Round complete - all gnomes hit! HP decreases
+    clearTimeout(gnomeTimeout);
+    clearTimeout(relocateTimeout);
+    gnomeHP--;
+    gnomeVisible = false;
+    updateHUD();
+    updateCombo();
+
+    if (gnomeHP <= 0) {
+      endGame();
+    }
+  } else {
+    // Partial hit - still more gnomes to whack this round
+    updateHUD();
+    updateCombo();
   }
 }
 
@@ -1264,6 +1500,8 @@ function startGame(difficulty) {
   activeHoles = [];
   roundHitsCount = 0;
   gnomeVisible = false;
+  cancelCharge();
+  rng = mulberry32(dateSeed(todayStr, lastDifficulty));
   gameRunning = true;
 
   // Apply difficulty grass color
@@ -1286,12 +1524,13 @@ function startGame(difficulty) {
 // --- Quit game (back to title) ---
 function quitGame() {
   gameRunning = false;
+  cancelCharge();
   stopTimers();
   stopMusic();
   gnomeVisible = false;
 
   document.querySelectorAll('.gnome-container').forEach(c => {
-    c.classList.remove('visible', 'hit');
+    c.classList.remove('visible', 'hit', 'charging', 'golden');
   });
 
   gameScreen.classList.remove('active');
@@ -1301,12 +1540,13 @@ function quitGame() {
 // --- End game ---
 function endGame() {
   gameRunning = false;
+  cancelCharge();
   stopTimers();
   stopMusic();
   gnomeVisible = false;
 
   document.querySelectorAll('.gnome-container').forEach(c => {
-    c.classList.remove('visible');
+    c.classList.remove('visible', 'hit', 'charging', 'golden');
   });
 
   setTimeout(() => {
@@ -1321,6 +1561,7 @@ function endGame() {
       `Hit points: ${score}  +  Time bonus: ${timeBonus}`;
     document.getElementById('final-detail').textContent =
       `${hits} hits, ${misses} misses  |  Accuracy: ${accuracy}%`;
+    document.getElementById('final-seed').textContent = 'Daily Seed: ' + todayStr;
     gameOver.classList.add('active');
     speak('oh no!');
   }, 500);
