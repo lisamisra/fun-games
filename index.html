@@ -591,24 +591,32 @@ function showTapFlash(x, y) {
 let speechUnlocked = false;
 function unlockSpeech() {
   if (speechUnlocked || !('speechSynthesis' in window)) return;
-  const utter = new SpeechSynthesisUtterance('');
-  utter.volume = 0;
+  // iOS requires a real utterance (not empty) from a user gesture
+  const utter = new SpeechSynthesisUtterance('.');
+  utter.volume = 0.01;
+  utter.rate = 10;
   window.speechSynthesis.speak(utter);
   speechUnlocked = true;
 }
 // Unlock on first user gesture (needed for iOS)
 document.addEventListener('touchstart', unlockSpeech, { once: true });
-document.addEventListener('mousedown', unlockSpeech, { once: true });
+document.addEventListener('click', unlockSpeech, { once: true });
 
 function speak(text, rate = 1.2, pitch = 1.5) {
   if (muted) return;
   if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.rate = rate;
-  utter.pitch = pitch;
-  utter.volume = 0.8;
-  window.speechSynthesis.speak(utter);
+  const synth = window.speechSynthesis;
+  // iOS: resume if silently paused
+  if (synth.paused) synth.resume();
+  synth.cancel();
+  // iOS: small delay after cancel() so the next utterance isn't killed
+  setTimeout(() => {
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = rate;
+    utter.pitch = pitch;
+    utter.volume = 0.8;
+    synth.speak(utter);
+  }, 10);
 }
 
 // --- Show speech bubble ---
