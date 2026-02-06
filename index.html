@@ -466,7 +466,6 @@ function toggleMute() {
   muted = !muted;
   localStorage.setItem('hammerhead-muted', muted);
   updateMuteBtn();
-  if (muted) window.speechSynthesis.cancel();
 }
 updateMuteBtn();
 
@@ -587,36 +586,120 @@ function showTapFlash(x, y) {
   setTimeout(() => h.remove(), 300);
 }
 
-// --- Speech synthesis helper ---
-let speechUnlocked = false;
-function unlockSpeech() {
-  if (speechUnlocked || !('speechSynthesis' in window)) return;
-  // iOS requires a real utterance (not empty) from a user gesture
-  const utter = new SpeechSynthesisUtterance('.');
-  utter.volume = 0.01;
-  utter.rate = 10;
-  window.speechSynthesis.speak(utter);
-  speechUnlocked = true;
+// --- Web Audio API sound effects ---
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // iOS: resume suspended context
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
 }
-// Unlock on first user gesture (needed for iOS)
-document.addEventListener('touchstart', unlockSpeech, { once: true });
-document.addEventListener('click', unlockSpeech, { once: true });
+// Unlock AudioContext on first user gesture (iOS requirement)
+function unlockAudio() {
+  const ctx = getAudioCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+  // Create and immediately stop a silent buffer to fully unlock
+  const buf = ctx.createBuffer(1, 1, 22050);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(ctx.destination);
+  src.start(0);
+}
+document.addEventListener('touchstart', unlockAudio, { once: true });
+document.addEventListener('click', unlockAudio, { once: true });
 
-function speak(text, rate = 1.2, pitch = 1.5) {
+// "pfffft" - filtered noise burst (raspberry sound)
+function playPfffft() {
+  const ctx = getAudioCtx();
+  const duration = 0.3;
+  const bufSize = ctx.sampleRate * duration;
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  // Shaped noise
+  for (let i = 0; i < bufSize; i++) {
+    const t = i / bufSize;
+    const envelope = (1 - t) * Math.pow(1 - t, 2);
+    data[i] = (Math.random() * 2 - 1) * envelope * 0.4;
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  // Bandpass filter for "raspberry" character
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 300;
+  filter.Q.value = 2;
+  const gain = ctx.createGain();
+  gain.gain.value = 0.6;
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  src.start();
+}
+
+// "ouuuuch" - descending tone with vibrato
+function playOuch() {
+  const ctx = getAudioCtx();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(600, ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.4);
+  gain.gain.setValueAtTime(0.3, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime + 0.5);
+}
+
+// "lol" - two quick ascending playful notes
+function playLol() {
+  const ctx = getAudioCtx();
+  const notes = [400, 600, 800];
+  notes.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = freq;
+    const start = ctx.currentTime + i * 0.1;
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(0.15, start + 0.02);
+    gain.gain.linearRampToValueAtTime(0, start + 0.1);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + 0.12);
+  });
+}
+
+// "oh no" - sad descending two-note
+function playOhNo() {
+  const ctx = getAudioCtx();
+  const notes = [500, 300];
+  notes.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    const start = ctx.currentTime + i * 0.25;
+    gain.gain.setValueAtTime(0.3, start);
+    gain.gain.exponentialRampToValueAtTime(0.01, start + 0.3);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + 0.35);
+  });
+}
+
+// Unified speak() replacement - maps text to sound effects
+function speak(text) {
   if (muted) return;
-  if (!('speechSynthesis' in window)) return;
-  const synth = window.speechSynthesis;
-  // iOS: resume if silently paused
-  if (synth.paused) synth.resume();
-  synth.cancel();
-  // iOS: small delay after cancel() so the next utterance isn't killed
-  setTimeout(() => {
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = rate;
-    utter.pitch = pitch;
-    utter.volume = 0.8;
-    synth.speak(utter);
-  }, 10);
+  switch (text) {
+    case 'pfffft': playPfffft(); break;
+    case 'ouuuuch': playOuch(); break;
+    case 'lol': playLol(); break;
+    case 'oh no!': playOhNo(); break;
+  }
 }
 
 // --- Show speech bubble ---
@@ -646,7 +729,7 @@ function spawnGnome() {
 
   // Say pfffft
   showBubble(activeHole, 'pfffft!');
-  speak('pfffft', 1.4, 1.8);
+  speak('pfffft');
 
   // Auto-hide after a window (gnome escapes)
   const visibleTime = currentDifficulty.visibleMin + Math.random() * currentDifficulty.visibleRange;
@@ -668,7 +751,7 @@ function gnomeEscaped() {
   healGnomeOnMiss();
   // The gnome laughs from wherever it was
   showBubble(activeHole, 'lol 😂', 900);
-  setTimeout(() => speak('lol', 1.0, 2.0), 150);
+  setTimeout(() => speak('lol'), 150);
 }
 
 // --- Hide gnome ---
@@ -711,7 +794,7 @@ function handleTap(x, y, target) {
     // Visual feedback
     clickedGnome.classList.add('hit');
     showBubble(idx, 'ouuuuch! 😵', 900);
-    speak('ouuuuch', 0.8, 1.2);
+    speak('ouuuuch');
     spawnStars(x, y);
 
     // Update HUD
@@ -738,7 +821,7 @@ function handleTap(x, y, target) {
     // Gnome laughs
     if (activeHole >= 0) {
       showBubble(activeHole, 'lol 😂', 900);
-      setTimeout(() => speak('lol', 1.0, 2.0), 100);
+      setTimeout(() => speak('lol'), 100);
     }
   }
 }
@@ -843,7 +926,6 @@ function quitGame() {
 
   gameScreen.classList.remove('active');
   titleScreen.classList.remove('hidden');
-  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 }
 
 // --- End game ---
@@ -861,7 +943,7 @@ function endGame() {
     document.getElementById('final-detail').textContent =
       `${hits} hits, ${misses} misses  |  Accuracy: ${hits > 0 ? Math.round(hits / (hits + misses) * 100) : 0}%`;
     gameOver.classList.add('active');
-    speak('oh no!', 0.7, 0.8);
+    speak('oh no!');
   }, 500);
 }
 
