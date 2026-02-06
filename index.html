@@ -2,19 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Hammer Head - Whack-a-Gnome!</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  body {
+  html, body {
     overflow: hidden;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
     font-family: 'Segoe UI', 'Comic Sans MS', cursive, sans-serif;
+    height: 100%;
   }
   *, *::before, *::after {
     cursor: none !important;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* --- Title Screen --- */
@@ -154,7 +158,6 @@
   /* --- Hole --- */
   .hole {
     position: absolute;
-    width: 160px; height: 130px;
   }
   .hole-mound {
     position: absolute; bottom: 0;
@@ -247,6 +250,21 @@
   #hammer.smash {
     transform: translate(-30%, -30%) rotate(30deg) scale(1.15);
   }
+  #hammer.hidden { display: none; }
+
+  /* --- Tap flash (touch devices) --- */
+  .tap-hammer {
+    position: fixed; z-index: 199;
+    font-size: 2.8rem;
+    pointer-events: none;
+    animation: tap-smash 0.25s ease-out forwards;
+    filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.4));
+  }
+  @keyframes tap-smash {
+    0%   { transform: translate(-30%, -30%) rotate(-15deg) scale(1); opacity: 1; }
+    40%  { transform: translate(-30%, -30%) rotate(30deg) scale(1.2); opacity: 1; }
+    100% { transform: translate(-30%, -30%) rotate(30deg) scale(0.9); opacity: 0; }
+  }
 
   /* --- Hit Stars --- */
   .star {
@@ -322,6 +340,31 @@
     60%  { transform: translateX(-5px); }
     80%  { transform: translateX(5px); }
   }
+
+  /* --- Responsive: small screens --- */
+  @media (max-width: 600px) {
+    #title-screen h1 { font-size: 2.5rem; }
+    #title-screen .subtitle { font-size: 1.1rem; }
+    #title-screen .gnome-preview { font-size: 3.5rem; }
+    .diff-btn { font-size: 1.1rem; padding: 0.4em 1em; }
+    #hud { padding: 0.6rem 0.8rem; }
+    #hud-left, #hud-right { gap: 0.4rem; }
+    #score-display { font-size: 1.1rem; padding: 0.3em 0.6em; }
+    .hud-btn { font-size: 1.1rem; padding: 0.25em 0.6em; }
+    #health-label { display: none; }
+    #health-bar-bg { width: 100px; height: 18px; }
+    #health-text { font-size: 0.85rem; }
+    #health-container { padding: 0.3em 0.6em; }
+    #game-over h2 { font-size: 2.2rem; }
+    #game-over .final-score { font-size: 1.4rem; }
+    #game-over .final-detail { font-size: 1rem; }
+    .green-btn { font-size: 1.2rem; padding: 0.5em 1.4em; }
+  }
+
+  /* --- iOS safe area padding --- */
+  @supports (padding-top: env(safe-area-inset-top)) {
+    #hud { padding-top: calc(0.6rem + env(safe-area-inset-top)); }
+  }
 </style>
 </head>
 <body>
@@ -379,10 +422,19 @@ const DIFFICULTY = {
   hard:   { visibleMin: 550,  visibleRange: 250, gapMin: 400,  gapRange: 600,  missHeal: MAX_HP },
 };
 let currentDifficulty = DIFFICULTY.normal;
-const HOLE_COUNT = 9;
-const HOLE_W = 160;
-const HOLE_H = 130;
-const HOLE_MIN_DIST = 170;
+
+// Responsive hole sizing
+function getHoleParams() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const small = w < 500 || h < 700;
+  return {
+    count: small ? 6 : 9,
+    width: small ? 120 : 160,
+    height: small ? 100 : 130,
+    minDist: small ? 130 : 170,
+  };
+}
 
 let score = 0;
 let hits = 0;
@@ -419,25 +471,24 @@ function toggleMute() {
 updateMuteBtn();
 
 // --- Generate random non-overlapping hole positions ---
-function generateHolePositions() {
-  const padding = 80; // keep away from edges
-  const topPadding = 100; // keep below HUD
-  const maxW = window.innerWidth - HOLE_W - padding;
-  const maxH = window.innerHeight - HOLE_H - padding;
+function generateHolePositions(params) {
+  const padding = params.width < 140 ? 40 : 80;
+  const topPadding = params.width < 140 ? 70 : 100;
+  const maxW = window.innerWidth - params.width - padding;
+  const maxH = window.innerHeight - params.height - padding;
   const positions = [];
   let attempts = 0;
 
-  while (positions.length < HOLE_COUNT && attempts < 2000) {
+  while (positions.length < params.count && attempts < 2000) {
     attempts++;
     const x = padding + Math.random() * (maxW - padding);
     const y = topPadding + Math.random() * (maxH - topPadding);
 
-    // Check distance from all existing holes
     let tooClose = false;
     for (const p of positions) {
       const dx = p.x - x;
       const dy = p.y - y;
-      if (Math.sqrt(dx * dx + dy * dy) < HOLE_MIN_DIST) {
+      if (Math.sqrt(dx * dx + dy * dy) < params.minDist) {
         tooClose = true;
         break;
       }
@@ -452,13 +503,16 @@ let holes = [];
 function buildField() {
   field.innerHTML = '';
   holes = [];
-  const positions = generateHolePositions();
+  const params = getHoleParams();
+  const positions = generateHolePositions(params);
 
   for (let i = 0; i < positions.length; i++) {
     const hole = document.createElement('div');
     hole.className = 'hole';
     hole.style.left = positions[i].x + 'px';
     hole.style.top = positions[i].y + 'px';
+    hole.style.width = params.width + 'px';
+    hole.style.height = params.height + 'px';
     hole.innerHTML = `
       <div class="speech-bubble"></div>
       <div class="hole-clip">
@@ -474,22 +528,78 @@ function buildField() {
   }
 }
 
-// --- Hammer follows mouse ---
+// --- Input handling (mouse + touch) ---
+const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+let tapHammerTimeout = null;
+
+// Hide persistent hammer on touch-only devices
+if (hasTouch && !window.matchMedia('(pointer: fine)').matches) {
+  hammer.classList.add('hidden');
+}
+
+// Mouse: hammer follows cursor
 document.addEventListener('mousemove', (e) => {
-  hammer.style.left = e.clientX + 'px';
-  hammer.style.top = e.clientY + 'px';
+  if (!hammer.classList.contains('hidden')) {
+    hammer.style.left = e.clientX + 'px';
+    hammer.style.top = e.clientY + 'px';
+  }
 });
 
-// --- Hammer smash animation on click ---
 document.addEventListener('mousedown', (e) => {
-  hammer.classList.add('smash');
-  if (gameRunning) handleClick(e);
+  if (!hammer.classList.contains('hidden')) {
+    hammer.classList.add('smash');
+  }
+  if (gameRunning) handleTap(e.clientX, e.clientY, e.target);
 });
+
 document.addEventListener('mouseup', () => {
   hammer.classList.remove('smash');
 });
 
+// Touch: show tap-flash hammer at touch point
+document.addEventListener('touchstart', (e) => {
+  const touch = e.touches[0];
+  const target = document.elementFromPoint(touch.clientX, touch.clientY);
+
+  // Prevent scroll/zoom on game field, but allow buttons to work
+  if (gameRunning && target && !target.closest('#hud')) {
+    e.preventDefault();
+  }
+
+  // Show a brief hammer animation at tap point
+  showTapFlash(touch.clientX, touch.clientY);
+
+  if (gameRunning) handleTap(touch.clientX, touch.clientY, target);
+}, { passive: false });
+
+// Prevent unwanted gestures on the game field
+document.addEventListener('touchmove', (e) => {
+  if (gameRunning) e.preventDefault();
+}, { passive: false });
+
+function showTapFlash(x, y) {
+  const h = document.createElement('div');
+  h.className = 'tap-hammer';
+  h.textContent = '🔨';
+  h.style.left = x + 'px';
+  h.style.top = y + 'px';
+  document.body.appendChild(h);
+  setTimeout(() => h.remove(), 300);
+}
+
 // --- Speech synthesis helper ---
+let speechUnlocked = false;
+function unlockSpeech() {
+  if (speechUnlocked || !('speechSynthesis' in window)) return;
+  const utter = new SpeechSynthesisUtterance('');
+  utter.volume = 0;
+  window.speechSynthesis.speak(utter);
+  speechUnlocked = true;
+}
+// Unlock on first user gesture (needed for iOS)
+document.addEventListener('touchstart', unlockSpeech, { once: true });
+document.addEventListener('mousedown', unlockSpeech, { once: true });
+
 function speak(text, rate = 1.2, pitch = 1.5) {
   if (muted) return;
   if (!('speechSynthesis' in window)) return;
@@ -570,13 +680,15 @@ function healGnomeOnMiss() {
   if (gnomeHP !== before) updateHUD();
 }
 
-// --- Handle click ---
-function handleClick(e) {
-  // Ignore clicks on HUD buttons
-  if (e.target.closest('#hud')) return;
+// --- Handle tap (unified mouse + touch) ---
+function handleTap(x, y, target) {
+  if (!target) return;
 
-  // Check if we clicked on the gnome
-  const clickedGnome = e.target.closest('.gnome-container.visible');
+  // Ignore taps on HUD buttons
+  if (target.closest('#hud')) return;
+
+  // Check if we tapped on the gnome
+  const clickedGnome = target.closest('.gnome-container.visible');
 
   if (clickedGnome) {
     // HIT!
@@ -592,7 +704,7 @@ function handleClick(e) {
     clickedGnome.classList.add('hit');
     showBubble(idx, 'ouuuuch! 😵', 900);
     speak('ouuuuch', 0.8, 1.2);
-    spawnStars(e.clientX, e.clientY);
+    spawnStars(x, y);
 
     // Update HUD
     updateHUD();
@@ -607,12 +719,12 @@ function handleClick(e) {
       endGame();
     }
   } else if (gnomeVisible) {
-    // Missed - clicked wrong spot while gnome is showing
+    // Missed - tapped wrong spot while gnome is showing
     clearTimeout(gnomeTimeout);
     misses++;
     healGnomeOnMiss();
     hideGnome();
-    showMissBubble(e.clientX, e.clientY);
+    showMissBubble(x, y);
     shakeScreen();
 
     // Gnome laughs
