@@ -1,0 +1,338 @@
+/* ===== Epic Bot Battles - Game-Specific Styles ===== */
+
+body { background: #0a0a1e; }
+
+/* --- Title Screen (bot battle theme) --- */
+#title-screen {
+  background: linear-gradient(180deg, #0a0a2e 0%, #1a1040 40%, #0a0a1e 100%);
+}
+#title-screen h1 {
+  font-size: 3.2rem; color: #FF6347;
+  text-shadow: 3px 3px 0 #8B0000, 0 0 20px rgba(255,99,71,0.5);
+  margin-bottom: 0.3rem;
+  animation: title-pulse 2s infinite alternate;
+}
+#title-screen .subtitle {
+  font-size: 1.2rem;
+}
+#title-screen .preview-emoji {
+  font-size: 4rem; margin-bottom: 0.8rem;
+}
+
+/* Bot battle diff-btn base override */
+.diff-btn {
+  background: #1a1040; color: #ddd;
+  border-color: #3a2070;
+  box-shadow: 0 4px 0 #2a1555;
+}
+.diff-btn:hover { box-shadow: 0 6px 0 #2a1555; }
+.diff-btn:active { box-shadow: 0 2px 0 #2a1555; }
+
+/* --- Sword Selection Screen --- */
+#sword-screen {
+  position: fixed; inset: 0;
+  background: linear-gradient(180deg, #0a0a2e 0%, #1a1040 40%, #0a0a1e 100%);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 110;
+}
+#sword-screen.active { display: flex; }
+#sword-screen h2 {
+  font-size: 2.2rem; color: #FFD700;
+  text-shadow: 2px 2px 4px #000;
+  margin-bottom: 0.3rem;
+}
+#sword-screen .round-info {
+  font-size: 1.1rem; color: #aaa; margin-bottom: 0.3rem;
+}
+#sword-screen .hp-info {
+  font-size: 1.1rem; color: #ccc; margin-bottom: 1rem;
+}
+.sword-grid {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 1rem; max-width: 700px; padding: 0 1rem;
+}
+.sword-card {
+  background: rgba(255,255,255,0.08);
+  border: 3px solid rgba(255,255,255,0.2);
+  border-radius: 16px; padding: 1.2rem 1rem;
+  width: 140px; text-align: center;
+  cursor: pointer; transition: transform 0.15s, border-color 0.15s, background 0.15s;
+}
+.sword-card:hover:not(.used) {
+  transform: translateY(-4px);
+  border-color: #FFD700;
+  background: rgba(255,215,0,0.1);
+}
+.sword-card.used {
+  opacity: 0.35; cursor: default;
+  position: relative;
+}
+.sword-card.used::after {
+  content: 'USED';
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(-20deg);
+  font-size: 1.4rem; font-weight: bold;
+  color: #FF4444;
+  text-shadow: 1px 1px 2px #000;
+}
+.sword-card .sword-emoji { font-size: 2.5rem; margin-bottom: 0.3rem; display: block; }
+.sword-card .sword-name { font-size: 1.1rem; font-weight: bold; color: #fff; margin-bottom: 0.2rem; }
+.sword-card .sword-desc { font-size: 0.8rem; color: #aaa; line-height: 1.3; }
+.sword-card.fire-card { border-color: rgba(255,100,0,0.4); }
+.sword-card.fire-card:hover:not(.used) { border-color: #FF6600; background: rgba(255,100,0,0.15); }
+.sword-card.lightning-card { border-color: rgba(255,255,0,0.3); }
+.sword-card.lightning-card:hover:not(.used) { border-color: #FFD700; background: rgba(255,255,0,0.1); }
+.sword-card.ice-card { border-color: rgba(100,200,255,0.3); }
+.sword-card.ice-card:hover:not(.used) { border-color: #64C8FF; background: rgba(100,200,255,0.1); }
+
+/* --- Game Screen --- */
+#game-screen {
+  position: fixed; inset: 0;
+  display: none; overflow: hidden;
+  background: #0a0510;
+}
+#game-screen.active {
+  display: flex; align-items: center; justify-content: center;
+}
+
+#game-viewport {
+  position: relative;
+  width: 100%; max-width: 900px;
+  height: 100%; max-height: 520px;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+/* --- Arena --- */
+#arena {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, #1a0a1e 0%, #2d1520 50%, #1a0a1e 100%);
+  overflow: hidden;
+}
+#arena-ceiling {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 15%; background: linear-gradient(180deg, #0d0508 0%, #1a0a10 100%);
+  border-bottom: 3px solid #3d1520;
+}
+#arena-ground {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 25%; background: linear-gradient(0deg, #2d1520 0%, #3d1a28 50%, #4d2030 100%);
+  border-top: 3px solid #6d3040;
+}
+#arena-ground::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: repeating-linear-gradient(90deg, #6d3040 0px, #8d4050 20px, #6d3040 40px);
+}
+#arena-lighting {
+  position: absolute; inset: 0;
+  pointer-events: none; z-index: 5;
+}
+
+.wall-torch {
+  position: absolute; left: 0; top: 0;
+  font-size: 2rem; z-index: 2;
+  will-change: transform;
+  animation: torch-flicker 0.3s infinite alternate;
+}
+@keyframes torch-flicker {
+  from { opacity: 0.85; }
+  to { opacity: 1; }
+}
+
+/* --- Robots --- */
+.robot {
+  position: absolute; left: 0; top: 0;
+  z-index: 10; font-size: 3rem; line-height: 1;
+  will-change: transform;
+}
+.robot .robot-sprite {
+  display: inline-block;
+  transition: filter 0.2s;
+}
+.robot.invincible .robot-sprite { animation: blink 0.15s infinite alternate !important; }
+
+.robot .sword-display {
+  position: absolute;
+  font-size: 1.4rem;
+  top: 0.15em;
+  pointer-events: none;
+  transform-origin: 50% 100%;
+  transition: transform 0.05s;
+}
+/* Blade extending from the sword emoji */
+.robot .sword-display::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 60px;
+  background: #C4A265;
+  border-radius: 2px 2px 0 0;
+  box-shadow: 0 0 4px rgba(196,162,101,0.4);
+}
+/* Sword type blade colors */
+.robot .sword-display.sword-wooden::after {
+  background: linear-gradient(to top, #A08050, #C4A265);
+  box-shadow: 0 0 4px rgba(196,162,101,0.3);
+}
+.robot .sword-display.sword-fire::after {
+  background: linear-gradient(to top, #CC4400, #FF6600, #FF9900);
+  box-shadow: 0 0 8px rgba(255,102,0,0.6), 0 0 16px rgba(255,102,0,0.3);
+}
+.robot .sword-display.sword-lightning::after {
+  background: linear-gradient(to top, #CCAA00, #FFD700, #FFEE88);
+  box-shadow: 0 0 8px rgba(255,215,0,0.6), 0 0 16px rgba(255,215,0,0.3);
+}
+.robot .sword-display.sword-ice::after {
+  background: linear-gradient(to top, #3090DD, #64C8FF, #AAE0FF);
+  box-shadow: 0 0 8px rgba(100,200,255,0.6), 0 0 16px rgba(100,200,255,0.3);
+}
+/* Enemy generic sword blade */
+.robot .sword-display.sword-enemy::after {
+  background: linear-gradient(to top, #888, #bbb);
+  box-shadow: 0 0 4px rgba(150,150,150,0.3);
+}
+
+/* --- Status Effects Floating --- */
+.status-float {
+  position: absolute;
+  font-size: 0.85rem;
+  pointer-events: none;
+  z-index: 15;
+  animation: status-bob 1.5s infinite alternate ease-in-out;
+  text-shadow: 0 0 6px rgba(255,255,255,0.3);
+  white-space: nowrap;
+  text-align: center;
+  opacity: 0.85;
+}
+@keyframes status-bob {
+  from { transform: translateY(0); }
+  to { transform: translateY(-4px); }
+}
+.status-float.burn { color: #FF6600; }
+.status-float.shock { color: #FFD700; animation: shock-flash 0.4s infinite alternate; }
+@keyframes shock-flash {
+  from { opacity: 0.85; transform: translateY(0); }
+  to { opacity: 0.5; transform: translateY(-3px); }
+}
+.status-float.freeze { color: #64C8FF; }
+.status-float.guard { color: #8888FF; }
+.status-float.frozen-state {
+  color: #00CCFF; font-size: 0.85rem; font-weight: bold;
+}
+
+/* --- Fixed Player HP in HUD --- */
+#player-hp-hud {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 1rem;
+}
+#enemy-hp-hud {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 1rem;
+}
+
+
+/* --- Controls (bot-battle specific buttons) --- */
+#controls-right { flex-direction: column; align-items: flex-end; }
+#controls-right-row { display: flex; gap: 0.5rem; }
+.ctrl-btn.move-btn { background: rgba(100,100,255,0.2); border-color: rgba(100,100,255,0.4); }
+.ctrl-btn.jump-btn { background: rgba(50,200,50,0.2); border-color: rgba(50,200,50,0.4); }
+.ctrl-btn.attack-btn { background: rgba(255,80,0,0.2); border-color: rgba(255,80,0,0.4); }
+.ctrl-btn.parry-btn { background: rgba(100,150,255,0.2); border-color: rgba(100,150,255,0.4); }
+
+/* --- Floating Damage Numbers --- */
+.dmg-float {
+  position: absolute;
+  font-size: 1.4rem; font-weight: bold;
+  pointer-events: none; z-index: 25;
+  animation: dmg-rise 0.8s ease-out forwards;
+  text-shadow: 1px 1px 2px #000;
+}
+@keyframes dmg-rise {
+  0% { opacity: 1; transform: translateY(0) scale(1.2); }
+  100% { opacity: 0; transform: translateY(-40px) scale(0.8); }
+}
+
+/* --- Round Transition Overlay --- */
+#round-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 50;
+}
+#round-overlay.active { display: flex; }
+#round-overlay h2 {
+  font-size: 2.5rem; color: #FFD700;
+  text-shadow: 2px 2px 4px #000, 0 0 20px rgba(255,215,0,0.5);
+  animation: title-pulse 1s infinite alternate;
+}
+#round-overlay .round-sub {
+  font-size: 1.2rem; color: #ccc; margin-top: 0.5rem;
+}
+
+/* --- Telegraph indicator --- */
+.telegraph-indicator {
+  position: absolute;
+  font-size: 1.5rem;
+  pointer-events: none; z-index: 14;
+  animation: telegraph-pulse 0.2s infinite alternate;
+}
+@keyframes telegraph-pulse {
+  from { transform: scale(1); opacity: 0.6; }
+  to { transform: scale(1.3); opacity: 1; }
+}
+
+/* --- Screen shake --- */
+#game-viewport.shake { animation: shake 0.3s ease-out; }
+
+/* --- Animations --- */
+@keyframes idle-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes attack-swing {
+  0% { transform: rotate(0deg); }
+  60% { transform: rotate(90deg); }
+  100% { transform: rotate(0deg); }
+}
+@keyframes enemy-swing {
+  0% { transform: rotate(0deg); }
+  60% { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* --- Back to Games button (game-over screen) --- */
+.go-home-btn {
+  background: #5C6BC0;
+  border-color: #3949AB;
+  box-shadow: 0 5px 0 #3949AB;
+  text-decoration: none;
+}
+.go-home-btn:hover {
+  box-shadow: 0 7px 0 #3949AB;
+}
+.go-home-btn:active {
+  box-shadow: 0 2px 0 #3949AB;
+}
+
+/* --- Responsive --- */
+@media (max-width: 600px) {
+  #title-screen h1 { font-size: 2.2rem; }
+  #title-screen .subtitle { font-size: 0.95rem; }
+  #title-screen .preview-emoji { font-size: 3rem; }
+  #sword-screen h2 { font-size: 1.6rem; }
+  .sword-card { width: 120px; padding: 0.8rem 0.6rem; }
+  .sword-card .sword-emoji { font-size: 2rem; }
+  .sword-card .sword-name { font-size: 0.95rem; }
+  .sword-card .sword-desc { font-size: 0.7rem; }
+  .robot { font-size: 2.2rem; }
+  .robot .sword-display::after { height: 45px; width: 4px; }
+}

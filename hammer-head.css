@@ -1,0 +1,384 @@
+/* ===== Hammer Head - Game-Specific Styles ===== */
+
+/* Override: all cursors hidden for hammer game */
+*, *::before, *::after {
+  cursor: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* --- Title Screen (hammer theme) --- */
+#title-screen {
+  background: linear-gradient(180deg, #87CEEB 0%, #90EE90 60%, #228B22 100%);
+}
+#title-screen h1 {
+  font-size: 4rem; color: #4a2800;
+  text-shadow: 3px 3px 0 #FFD700, -1px -1px 0 #2E1500;
+  margin-bottom: 0.5rem;
+  animation: bounce 1s infinite alternate;
+}
+#title-screen .subtitle {
+  font-size: 1.4rem; color: #2E1500; margin-bottom: 1.5rem;
+}
+#title-screen .daily-seed {
+  color: #6B4226; opacity: 0.7;
+}
+#title-screen .gnome-preview {
+  font-size: 5rem; margin-bottom: 1.5rem;
+  animation: wobble 0.8s infinite alternate;
+}
+
+/* hammer-head overrides diff-btn base with its own theme */
+.diff-btn {
+  background: #fff; color: #4a2800;
+  border-color: #8B5A2B;
+  box-shadow: 0 4px 0 #6B4226;
+}
+.diff-btn:hover { box-shadow: 0 6px 0 #6B4226; }
+.diff-btn:active { box-shadow: 0 2px 0 #6B4226; }
+.diff-btn.easy { background: #90EE90; border-color: #2E7D32; box-shadow: 0 4px 0 #2E7D32; }
+.diff-btn.easy:hover { box-shadow: 0 6px 0 #2E7D32; }
+.diff-btn.easy:active { box-shadow: 0 2px 0 #2E7D32; }
+.diff-btn.normal { background: #FFD700; border-color: #B8860B; box-shadow: 0 4px 0 #B8860B; }
+.diff-btn.normal:hover { box-shadow: 0 6px 0 #B8860B; }
+.diff-btn.normal:active { box-shadow: 0 2px 0 #B8860B; }
+.diff-btn.hard { background: #FF6347; color: #fff; border-color: #8B0000; box-shadow: 0 4px 0 #8B0000; }
+.diff-btn.hard:hover { box-shadow: 0 6px 0 #8B0000; }
+.diff-btn.hard:active { box-shadow: 0 2px 0 #8B0000; }
+
+/* hammer-head home link overrides */
+#title-screen .home-link {
+  margin-top: 1.5rem;
+  background: rgba(0,0,0,0.15); color: #2E1500;
+  border-color: rgba(0,0,0,0.2);
+}
+#title-screen .home-link:hover { background: rgba(0,0,0,0.25); }
+
+/* --- Big Button (start) --- */
+.big-btn {
+  font-size: 1.8rem; padding: 0.7em 2em;
+  background: #FF6347; color: white;
+  border: 4px solid #8B0000; border-radius: 16px;
+  font-family: inherit;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+  box-shadow: 0 6px 0 #8B0000;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.big-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 0 #8B0000; }
+.big-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #8B0000; }
+
+/* --- Game Screen --- */
+#game-screen {
+  position: fixed; inset: 0;
+  background: linear-gradient(180deg, #87CEEB 0%, #7EC850 40%, #5DA832 100%);
+  display: none;
+}
+#game-screen.active { display: block; }
+
+/* --- HUD (hammer-head overrides) --- */
+#hud {
+  align-items: center;
+  padding: 1rem 1.5rem;
+  z-index: 10;
+}
+#score-display, #timer-display {
+  font-size: 1.6rem; font-weight: bold;
+  color: #fff; background: rgba(0,0,0,0.3);
+  padding: 0.4em 1em; border-radius: 12px;
+}
+#combo-display {
+  font-size: 1.4rem; font-weight: bold;
+  color: #FFD700; background: rgba(0,0,0,0.3);
+  padding: 0.3em 0.8em; border-radius: 12px;
+  display: none;
+}
+#combo-display.active { display: block; }
+
+/* HUD button override for hammer */
+.hud-btn {
+  font-size: 1.3rem; padding: 0.3em 0.8em;
+  background: rgba(0,0,0,0.3);
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 10px;
+}
+.hud-btn:hover { background: rgba(0,0,0,0.5); }
+
+/* --- HUD home link override --- */
+.home-link {
+  background: rgba(255,255,255,0.2); color: #fff;
+  border: 2px solid rgba(255,255,255,0.4);
+}
+.home-link:hover { background: rgba(255,255,255,0.35); }
+
+/* --- Score popup --- */
+.score-popup {
+  position: fixed;
+  font-size: 1.5rem; font-weight: bold;
+  color: #FFD700; pointer-events: none;
+  animation: score-float 0.8s ease-out forwards;
+  z-index: 50;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+.score-popup.penalty { color: #FF4444; }
+@keyframes score-float {
+  0%   { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-50px) scale(1.3); opacity: 0; }
+}
+
+/* --- Health bar --- */
+#health-container {
+  display: flex; align-items: center; gap: 0.6rem;
+  background: rgba(0,0,0,0.3); padding: 0.4em 1em;
+  border-radius: 12px;
+}
+#health-label { font-size: 1.2rem; color: #fff; font-weight: bold; }
+#health-bar-bg {
+  width: 200px; height: 22px;
+  background: #555; border-radius: 11px;
+  overflow: hidden; border: 2px solid #333;
+}
+#health-bar {
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, #FF4444, #FF6666);
+  border-radius: 11px;
+  transition: width 0.3s ease;
+}
+#health-text {
+  font-size: 1rem; color: #fff; min-width: 3em; text-align: right;
+}
+
+/* --- Field --- */
+#field { position: absolute; inset: 0; }
+
+/* --- Hole --- */
+.hole { position: absolute; }
+.hole-mound {
+  position: absolute; bottom: 0;
+  width: 100%; height: 50%;
+  background: radial-gradient(ellipse at 50% 80%, #6B4226 0%, #8B5A2B 40%, #5C3317 100%);
+  border-radius: 50%; z-index: 3;
+  box-shadow: inset 0 -8px 15px rgba(0,0,0,0.3);
+}
+.hole-dark {
+  position: absolute; bottom: 10%;
+  left: 12.5%; width: 75%; height: 35%;
+  background: radial-gradient(ellipse, #1a0a00 0%, #2d1500 100%);
+  border-radius: 50%; z-index: 1;
+}
+.hole-clip {
+  position: absolute; bottom: 15%;
+  left: 0; right: 0; height: 85%;
+  overflow: hidden; z-index: 4;
+}
+.gnome-container {
+  position: absolute; bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(100%);
+  text-align: center;
+  transition: transform 0.15s ease-out;
+  pointer-events: none;
+}
+.gnome-container.visible {
+  transform: translateX(-50%) translateY(10%);
+  pointer-events: auto;
+}
+.gnome-container.hit {
+  animation: gnome-hit 0.3s ease-out forwards;
+}
+.gnome {
+  font-size: 3.2rem;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+  transition: filter 0.15s;
+}
+.gnome-container.hit .gnome {
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)) brightness(1.5);
+}
+
+/* --- Charge indicator (wind-up hold) --- */
+.gnome-container.charging .gnome {
+  animation: charge-pulse 0.15s ease-in-out infinite alternate;
+}
+.gnome-container.charging::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 50%;
+  width: 0; height: 0;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  border: 3px solid rgba(255, 100, 50, 0.8);
+  box-shadow: 0 0 8px rgba(255, 100, 50, 0.5);
+  animation: charge-ring var(--charge-duration, 0.3s) ease-out forwards;
+  pointer-events: none;
+  z-index: 10;
+}
+@keyframes charge-pulse {
+  from { transform: scale(1); }
+  to   { transform: scale(1.12); }
+}
+@keyframes charge-ring {
+  0%   { width: 0; height: 0; opacity: 0.4; }
+  100% { width: 120%; height: 120%; opacity: 1; }
+}
+
+/* --- Golden Gnome --- */
+.gnome-container.golden .gnome {
+  filter: drop-shadow(0 0 12px rgba(255,215,0,0.8)) drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+  animation: golden-glow 0.5s infinite alternate;
+}
+.gnome-container.golden.charging .gnome {
+  animation: charge-pulse 0.15s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 12px rgba(255,215,0,0.8)) drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+}
+@keyframes golden-glow {
+  from { filter: drop-shadow(0 0 8px rgba(255,215,0,0.6)) drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
+  to   { filter: drop-shadow(0 0 18px rgba(255,215,0,1)) drop-shadow(0 4px 6px rgba(0,0,0,0.3)) brightness(1.15); }
+}
+
+/* --- Speech Bubble --- */
+.speech-bubble {
+  position: absolute; top: -10px; left: 50%;
+  transform: translateX(-50%) scale(0);
+  background: #fff; color: #333;
+  font-size: 1.1rem; font-weight: bold;
+  padding: 0.3em 0.7em; border-radius: 12px;
+  border: 2px solid #999;
+  white-space: nowrap;
+  opacity: 0; z-index: 20;
+  transition: transform 0.15s ease-out, opacity 0.15s;
+  pointer-events: none;
+}
+.speech-bubble::after {
+  content: '';
+  position: absolute; bottom: -8px; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid #fff;
+}
+.speech-bubble.show {
+  transform: translateX(-50%) scale(1);
+  opacity: 1;
+}
+
+/* --- Miss bubble --- */
+.miss-bubble {
+  position: fixed;
+  font-size: 1.4rem; font-weight: bold;
+  color: #FF6347; pointer-events: none;
+  animation: float-up 1s ease-out forwards;
+  z-index: 50;
+  text-shadow: 1px 1px 0 #fff;
+}
+
+/* --- Hammer --- */
+#hammer {
+  position: fixed; z-index: 200;
+  font-size: 2.8rem;
+  pointer-events: none;
+  transform: translate(-30%, -30%) rotate(-15deg);
+  transition: transform 0.08s ease-out;
+  filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.4));
+}
+#hammer.smash {
+  transform: translate(-30%, -30%) rotate(30deg) scale(1.15);
+}
+#hammer.hidden { display: none; }
+
+/* --- Tap flash (touch devices) --- */
+.tap-hammer {
+  position: fixed; z-index: 199;
+  font-size: 2.8rem;
+  pointer-events: none;
+  animation: tap-smash 0.25s ease-out forwards;
+  filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.4));
+}
+@keyframes tap-smash {
+  0%   { transform: translate(-30%, -30%) rotate(-15deg) scale(1); opacity: 1; }
+  40%  { transform: translate(-30%, -30%) rotate(30deg) scale(1.2); opacity: 1; }
+  100% { transform: translate(-30%, -30%) rotate(30deg) scale(0.9); opacity: 0; }
+}
+
+/* --- Hit Stars --- */
+.star {
+  position: fixed; pointer-events: none;
+  font-size: 1.5rem; z-index: 150;
+}
+
+/* --- Game Over Screen (hammer theme overrides) --- */
+#game-over {
+  background: rgba(0,0,0,0.75);
+}
+#game-over h2 {
+  font-size: 3.5rem; color: #FFD700;
+  text-shadow: 2px 2px 4px #000;
+  margin-bottom: 0.5rem;
+  animation: bounce 0.8s infinite alternate;
+}
+#game-over .final-score {
+  font-size: 2rem; color: #fff; margin-bottom: 0.3rem;
+}
+#game-over .final-difficulty {
+  font-size: 1.3rem; color: #FFD700; margin-bottom: 0.3rem;
+  font-weight: bold;
+}
+#game-over .final-time {
+  font-size: 1.6rem; color: #fff; margin-bottom: 0.3rem;
+}
+#game-over .final-detail {
+  font-size: 1.2rem; color: #ccc; margin-bottom: 0.3rem;
+}
+#game-over .final-seed {
+  font-size: 0.9rem; color: #888; margin-bottom: 1.5rem;
+}
+
+/* hammer green-btn is slightly larger */
+.green-btn {
+  font-size: 1.5rem; padding: 0.6em 1.8em;
+  border-radius: 14px;
+}
+
+/* --- Screen shake --- */
+#game-screen.shake { animation: shake 0.3s ease-out; }
+
+/* --- Animations --- */
+@keyframes bounce {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-12px); }
+}
+@keyframes wobble {
+  from { transform: rotate(-8deg); }
+  to   { transform: rotate(8deg); }
+}
+@keyframes gnome-hit {
+  0%   { transform: translateX(-50%) translateY(10%) scale(1); }
+  30%  { transform: translateX(-50%) translateY(-20%) scale(1.1); }
+  100% { transform: translateX(-50%) translateY(100%) scale(0.8); }
+}
+@keyframes float-up {
+  0%   { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-60px) scale(1.4); opacity: 0; }
+}
+
+/* --- Responsive: small screens --- */
+@media (max-width: 600px) {
+  #title-screen h1 { font-size: 2.5rem; }
+  #title-screen .subtitle { font-size: 1.1rem; }
+  #title-screen .gnome-preview { font-size: 3.5rem; }
+  #hud { padding: 0.6rem 0.8rem; }
+  #hud-left, #hud-right { gap: 0.4rem; }
+  #score-display, #timer-display { font-size: 1.1rem; padding: 0.3em 0.6em; }
+  #combo-display { font-size: 1rem; padding: 0.2em 0.5em; }
+  .hud-btn { font-size: 1.1rem; padding: 0.25em 0.6em; }
+  #health-label { display: none; }
+  #health-bar-bg { width: 100px; height: 18px; }
+  #health-text { font-size: 0.85rem; }
+  #health-container { padding: 0.3em 0.6em; }
+  #game-over h2 { font-size: 2.2rem; }
+  #game-over .final-score { font-size: 1.4rem; }
+  #game-over .final-detail { font-size: 1rem; }
+  .green-btn { font-size: 1.2rem; padding: 0.5em 1.4em; }
+}
+
+@supports (padding-top: env(safe-area-inset-top)) {
+  #hud { padding-top: calc(0.6rem + env(safe-area-inset-top)); }
+}

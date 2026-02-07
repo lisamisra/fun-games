@@ -1,0 +1,263 @@
+/* ===== Dungeon Doom - Game-Specific Styles ===== */
+
+body { background: #1a0a1e; }
+
+/* --- Title Screen (dungeon theme) --- */
+#title-screen {
+  background: linear-gradient(180deg, #1a0a2e 0%, #2d1b4e 40%, #1a0a1e 100%);
+}
+#title-screen h1 {
+  font-size: 3.5rem; color: #FF6347;
+  text-shadow: 3px 3px 0 #8B0000, 0 0 20px rgba(255,99,71,0.5);
+  margin-bottom: 0.3rem;
+  animation: title-pulse 2s infinite alternate;
+}
+#title-screen .subtitle {
+  font-size: 1.3rem;
+}
+#title-screen .dungeon-preview {
+  font-size: 4rem; margin-bottom: 1rem;
+}
+
+/* Dungeon diff-btn base override */
+.diff-btn {
+  background: #2d1b4e; color: #ddd;
+  border-color: #5a3d7a;
+  box-shadow: 0 4px 0 #3d2555;
+}
+.diff-btn:hover { box-shadow: 0 6px 0 #3d2555; }
+.diff-btn:active { box-shadow: 0 2px 0 #3d2555; }
+
+/* --- Intro elements --- */
+#intro-scared {
+  position: absolute;
+  font-size: 2rem; z-index: 12;
+  opacity: 0; transition: opacity 0.2s;
+  pointer-events: none;
+}
+#intro-scared.visible {
+  opacity: 1;
+  animation: scared-bob 0.3s infinite alternate;
+}
+@keyframes scared-bob {
+  from { transform: translateY(0); }
+  to { transform: translateY(-6px); }
+}
+#intro-text {
+  position: absolute; left: 50%; top: 35%;
+  transform: translateX(-50%);
+  color: #FF6347; font-size: 2.5rem; font-weight: bold;
+  opacity: 0; transition: opacity 0.4s;
+  text-shadow: 0 0 20px rgba(255,99,71,0.6), 2px 2px 0 #000;
+  pointer-events: none; z-index: 15;
+  white-space: nowrap;
+}
+#intro-text.visible { opacity: 1; }
+
+/* --- Game Screen --- */
+#game-screen {
+  position: fixed; inset: 0;
+  display: none; overflow: hidden;
+  background: #0a0510;
+}
+#game-screen.active {
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* --- Game Viewport --- */
+#game-viewport {
+  position: relative;
+  width: 100%; max-width: 900px;
+  height: 100%; max-height: 520px;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+/* --- Dungeon --- */
+#dungeon {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, #1a0a1e 0%, #2d1520 50%, #1a0a1e 100%);
+  overflow: hidden;
+}
+#ceiling {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 15%; background: linear-gradient(180deg, #0d0508 0%, #1a0a10 100%);
+  border-bottom: 3px solid #3d1520;
+}
+#ground {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 25%; background: linear-gradient(0deg, #2d1520 0%, #3d1a28 50%, #4d2030 100%);
+  border-top: 3px solid #6d3040;
+}
+#ground::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: repeating-linear-gradient(90deg, #6d3040 0px, #8d4050 20px, #6d3040 40px);
+}
+
+/* Torch lighting overlay */
+#torch-overlay {
+  position: absolute; inset: 0;
+  pointer-events: none; z-index: 5;
+  will-change: transform;
+}
+
+/* Wall torches */
+.wall-torch {
+  position: absolute; left: 0; top: 0;
+  font-size: 2rem; z-index: 2;
+  will-change: transform;
+  animation: torch-flicker 0.3s infinite alternate;
+}
+@keyframes torch-flicker {
+  from { opacity: 0.85; }
+  to { opacity: 1; }
+}
+
+/* --- Player --- */
+#player {
+  position: absolute; left: 0; top: 0;
+  z-index: 10;
+  font-size: 3rem; line-height: 1;
+  will-change: transform;
+}
+#player .player-sprite { display: inline-block; }
+#player.invincible .player-sprite { animation: blink 0.15s infinite alternate !important; }
+#player.spinning .player-sprite { animation: spin 0.5s linear !important; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* --- Boulder --- */
+#boulder {
+  position: absolute; left: 0; top: 0;
+  font-size: 4.5rem; z-index: 8;
+  will-change: transform;
+}
+#boulder .boulder-sprite {
+  display: inline-block;
+  animation: boulder-roll 0.6s linear infinite;
+  will-change: transform;
+}
+@keyframes boulder-roll {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* --- Bats --- */
+.bat {
+  position: absolute; left: 0; top: 0;
+  font-size: 1.4rem; z-index: 3;
+  will-change: transform;
+  pointer-events: none;
+  opacity: 0.6;
+}
+.bat .bat-inner {
+  display: inline-block;
+  animation: bat-flap 0.25s steps(1) infinite;
+}
+@keyframes bat-flap {
+  0%   { transform: scaleY(1); }
+  50%  { transform: scaleY(0.5); }
+}
+
+/* --- Obstacles --- */
+.obstacle {
+  position: absolute; left: 0; top: 0;
+  font-size: 2.5rem; z-index: 9;
+  will-change: transform;
+}
+.obstacle.fire-pit .obs-inner {
+  display: inline-block;
+  animation: fire-animate 0.2s infinite alternate;
+  transform-origin: bottom center;
+}
+@keyframes fire-animate {
+  0%   { transform: scaleY(1) scaleX(1); }
+  50%  { transform: scaleY(1.25) scaleX(0.88); }
+  100% { transform: scaleY(0.9) scaleX(1.06); }
+}
+.obstacle.arrow-projectile {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #ddd;
+  text-shadow: 4px 0 8px rgba(255,150,50,0.6), 8px 0 16px rgba(255,100,0,0.3);
+  letter-spacing: -3px;
+}
+
+/* --- Center Hint --- */
+#center-hint {
+  position: absolute; z-index: 25;
+  left: 50%; top: 38%;
+  transform: translate(-50%, -50%) scale(1);
+  font-size: 2.5rem; font-weight: bold;
+  color: #4f4; pointer-events: none;
+  text-shadow: 0 0 20px rgba(50,255,50,0.6), 2px 2px 0 #000;
+  opacity: 0;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+#center-hint.visible {
+  opacity: 1;
+  animation: hint-pulse 0.4s ease-out;
+}
+@keyframes hint-pulse {
+  from { transform: translate(-50%, -50%) scale(1.4); }
+  to { transform: translate(-50%, -50%) scale(1); }
+}
+
+/* --- Pickups --- */
+.pickup {
+  position: absolute; left: 0; top: 0;
+  font-size: 2.2rem; z-index: 9;
+  will-change: transform;
+}
+.pickup .pickup-inner {
+  display: inline-block;
+  animation: pickup-bob 0.6s infinite alternate ease-in-out;
+}
+@keyframes pickup-bob {
+  from { transform: translateY(0); }
+  to { transform: translateY(-8px); }
+}
+
+/* --- Fireballs --- */
+.fireball-projectile {
+  position: absolute; left: 0; top: 0;
+  font-size: 2rem; z-index: 11;
+  will-change: transform;
+}
+
+/* --- Boulder HP bar --- */
+#boulder-hp-container {
+  display: flex; align-items: center; gap: 0.4rem;
+  background: rgba(0,0,0,0.6); padding: 0.3em 0.7em; border-radius: 10px;
+}
+#boulder-hp-bar-bg {
+  width: 120px; height: 16px; background: #333;
+  border-radius: 8px; overflow: hidden; border: 2px solid #555;
+}
+#boulder-hp-bar {
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, #8B0000, #FF4444);
+  border-radius: 8px; transition: width 0.3s;
+}
+#boulder-hp-text { font-size: 0.9rem; color: #fff; min-width: 2.5em; }
+
+/* --- Controls (dungeon-specific button variants) --- */
+.ctrl-btn.jump-btn { background: rgba(50,200,50,0.2); border-color: rgba(50,200,50,0.4); }
+.ctrl-btn.duck-btn { background: rgba(50,100,200,0.2); border-color: rgba(50,100,200,0.4); }
+.ctrl-btn.destroy-btn { background: rgba(255,80,0,0.2); border-color: rgba(255,80,0,0.4); }
+
+/* --- Screen shake --- */
+#game-viewport.shake { animation: shake 0.3s ease-out; }
+
+/* --- Responsive --- */
+@media (max-width: 600px) {
+  #title-screen h1 { font-size: 2.4rem; }
+  #title-screen .subtitle { font-size: 1rem; }
+  #title-screen .dungeon-preview { font-size: 3rem; }
+  #boulder-hp-bar-bg { width: 80px; height: 14px; }
+  #boulder-hp-text { font-size: 0.8rem; }
+  #player { font-size: 2.2rem; }
+  #boulder { font-size: 3.5rem; }
+  .obstacle { font-size: 2rem; }
+  .pickup { font-size: 1.8rem; }
+}

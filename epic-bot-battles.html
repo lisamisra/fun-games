@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Epic Bot Battles - Robot Sword Fighting!</title>
+<link rel="stylesheet" href="shared/common.css">
+<link rel="stylesheet" href="epic-bot-battles.css">
+</head>
+<body>
+
+<!-- Title Screen -->
+<div id="title-screen">
+  <div class="preview-emoji">🤖⚔️🤖</div>
+  <h1>Epic Bot Battles</h1>
+  <p class="subtitle">Choose your sword. Defeat 4 robots!</p>
+  <p class="daily-seed" id="daily-seed"></p>
+  <div class="controls-guide">
+    <div class="control-item"><kbd>A</kbd>/<kbd>D</kbd> Move</div>
+    <div class="control-item"><kbd>Space</kbd> Jump</div>
+    <div class="control-item"><kbd>J</kbd> / Click Attack</div>
+    <div class="control-item"><kbd>K</kbd> / RClick Parry</div>
+  </div>
+  <div id="difficulty-pick">
+    <button class="diff-btn easy" onclick="beginGame('easy')">Easy</button>
+    <button class="diff-btn normal" onclick="beginGame('normal')">Normal</button>
+    <button class="diff-btn hard" onclick="beginGame('hard')">Hard</button>
+    <button class="diff-btn achal" onclick="beginGame('achal')"><img src="achal-anna.png" alt="">Nightmare</button>
+  </div>
+  <a href="index.html" class="home-link">Back to Games</a>
+</div>
+
+<!-- Sword Selection Screen -->
+<div id="sword-screen">
+  <h2>Choose Your Sword</h2>
+  <p class="round-info" id="sword-round-info">Round 1 of 4</p>
+  <p class="hp-info" id="sword-hp-info">❤️❤️❤️❤️❤️</p>
+  <div class="sword-grid" id="sword-grid">
+    <div class="sword-card" data-sword="wooden" onclick="selectSword('wooden')">
+      <span class="sword-emoji">🗡️</span>
+      <div class="sword-name">Wooden</div>
+      <div class="sword-desc">1.0 DMG per hit. Reliable!</div>
+    </div>
+    <div class="sword-card fire-card" data-sword="fire" onclick="selectSword('fire')">
+      <span class="sword-emoji">🔥</span>
+      <div class="sword-name">Fire</div>
+      <div class="sword-desc">0.5 DMG + Burn: 0.5/2s for 4s</div>
+    </div>
+    <div class="sword-card lightning-card" data-sword="lightning" onclick="selectSword('lightning')">
+      <span class="sword-emoji">⚡</span>
+      <div class="sword-name">Lightning</div>
+      <div class="sword-desc">0.5 DMG + Shock: next hit 4x</div>
+    </div>
+    <div class="sword-card ice-card" data-sword="ice" onclick="selectSword('ice')">
+      <span class="sword-emoji">❄️</span>
+      <div class="sword-name">Ice</div>
+      <div class="sword-desc">0.5 DMG + Freeze: 2 hits = frozen 2s</div>
+    </div>
+  </div>
+</div>
+
+<!-- Game Screen -->
+<div id="game-screen">
+  <div id="game-viewport">
+    <div id="hud">
+      <div id="hud-left">
+        <button class="hud-btn" id="mute-btn" onclick="toggleMute()">🔊</button>
+        <div class="hud-item" id="round-display">Round 1/4</div>
+        <div class="hud-item" id="sword-display">🗡️ Wooden</div>
+        <div id="player-hp-hud">🤖 <span id="player-hp-hearts"></span> <span id="player-resist-hud"></span></div>
+      </div>
+      <div id="hud-right">
+        <div id="enemy-hp-hud"><span id="enemy-hp-hearts"></span> <span id="enemy-resist-hud"></span> 👾</div>
+        <button class="hud-btn" id="quit-btn" onclick="quitGame()">✕ Quit</button>
+      </div>
+    </div>
+
+    <div id="arena">
+      <div id="arena-ceiling"></div>
+      <div id="arena-ground"></div>
+      <div id="arena-lighting"></div>
+      <div class="robot" id="player-robot">
+        <span class="robot-sprite">🤖</span>
+        <span class="sword-display" id="player-sword-icon">🗡️</span>
+      </div>
+      <div class="robot" id="enemy-robot">
+        <span class="robot-sprite">🤖</span>
+        <span class="sword-display" id="enemy-sword-icon">🗡️</span>
+      </div>
+      <div id="round-overlay">
+        <h2 id="round-overlay-text">Round 1 Complete!</h2>
+        <p class="round-sub" id="round-overlay-sub"></p>
+      </div>
+    </div>
+
+    <div id="controls">
+      <div id="controls-left">
+        <button class="ctrl-btn move-btn" id="btn-left">◀</button>
+        <button class="ctrl-btn move-btn" id="btn-right">▶</button>
+      </div>
+      <div id="controls-right">
+        <button class="ctrl-btn jump-btn" id="btn-jump">⬆ Jump</button>
+        <div id="controls-right-row">
+          <button class="ctrl-btn attack-btn" id="btn-attack">⚔ Attack</button>
+          <button class="ctrl-btn parry-btn" id="btn-parry">🛡 Parry</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Game Over Screen -->
+<div id="game-over">
+  <h2 id="go-title">Victory!</h2>
+  <div class="stat-line big" id="go-result"></div>
+  <div class="stat-line" id="go-difficulty"></div>
+  <div class="stat-line" id="go-rounds"></div>
+  <div class="stat-line" id="go-time"></div>
+  <div class="stat-line" id="go-swords"></div>
+  <div class="stat-line" id="go-hp-lost"></div>
+  <div class="stat-line go-seed" id="go-seed"></div>
+  <div class="go-buttons">
+    <button class="green-btn" onclick="restartGame()">Play Again!</button>
+    <a href="index.html" class="green-btn go-home-btn">Back to Games</a>
+  </div>
+</div>
+
+<script src="shared/rng.js"></script>
+<script src="shared/audio.js"></script>
+<script src="shared/music.js"></script>
+<script src="epic-bot-battles.js"></script>
+</body>
+</html>
