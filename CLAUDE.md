@@ -29,6 +29,17 @@ pic.jpeg       — Profile picture
 - Each game has 4 difficulty levels: Easy, Normal, Hard, Nightmare (Nightmare uses `achal-anna.png` avatar)
 - Mute state shared across games via localStorage key `fun-games-muted`
 
+## Hammer Head — Key Systems
+
+- **All difficulties:** Tap-to-hit (no hold/charge mechanic)
+- **Easy/Normal:** Always 1 tap to whack
+- **Hard/Nightmare:** Multi-tap — weighted random (1-2 common, 3 rare); tap count shown above gnome when > 1
+  - Hard: 1 gnome per round
+  - Nightmare: 2 gnomes per round (shared tap pool, reset between gnomes with new target)
+- **Over-tap:** Tapping more than required = miss with penalty
+- **Golden gnomes:** Always 1 tap (first touch = hit), triggers field reshuffle
+- **Testing:** `?golden=true` query param forces golden gnome spawns
+
 ## Epic Bot Battles — Key Systems
 
 - **Sword types:** wooden (1.0 dmg), fire (0.5 + burn DOT), lightning (0.5 + shock 4x next hit), ice (0.5 + freeze on 2 hits)

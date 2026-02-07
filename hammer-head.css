@@ -193,6 +193,24 @@
   filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)) brightness(1.5);
 }
 
+/* --- Tap-count display (Hard+ multi-tap) --- */
+.tap-count {
+  position: absolute;
+  bottom: -1.6em;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #FFD700;
+  text-shadow: 2px 2px 4px #000;
+  display: none;
+  z-index: 20;
+  pointer-events: none;
+}
+.tap-count.active {
+  display: block;
+}
+
 /* --- Charge indicator (wind-up hold) --- */
 .gnome-container.charging .gnome {
   animation: charge-pulse 0.15s ease-in-out infinite alternate;

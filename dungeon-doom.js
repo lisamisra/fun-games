@@ -37,7 +37,7 @@ var DIFFICULTY = {
               ceiling: '#0d0202', border: '#5d1010' }
   },
   achal: {
-    label: 'Achal Anna', startSpeed: 9, maxSpeed: 9, rampRate: 0,
+    label: 'Nightmare', startSpeed: 9, maxSpeed: 9, rampRate: 0,
     spawnInterval: 1.2, spawnVariance: 0.3,
     chestChance: 0.25, heartChance: 0.15,
     misleadChance: 0.25, comboChance: 0.45,

@@ -815,7 +815,7 @@ function startRound() {
   }
 
   // Show controls for touch devices
-  if (hasTouch) controlsEl.classList.add('active');
+  controlsEl.classList.add('active');
   roundOverlay.classList.remove('active');
 
   // Start game loop
