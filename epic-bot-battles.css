@@ -230,12 +230,27 @@ body { background: #0a0a1e; }
   align-items: center;
   gap: 0.3rem;
   font-size: 1rem;
+  background: rgba(50, 120, 255, 0.25);
+  padding: 0.2em 0.5em;
+  border-radius: 8px;
+  border: 1px solid rgba(50, 120, 255, 0.4);
 }
 #enemy-hp-hud {
   display: flex;
   align-items: center;
   gap: 0.3rem;
   font-size: 1rem;
+  background: rgba(255, 60, 60, 0.25);
+  padding: 0.2em 0.5em;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 60, 60, 0.4);
+}
+.hp-label {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 
@@ -335,4 +350,6 @@ body { background: #0a0a1e; }
   .sword-card .sword-desc { font-size: 0.7rem; }
   .robot { font-size: 2.2rem; }
   .robot .sword-display::after { height: 45px; width: 4px; }
+  #player-hp-hud, #enemy-hp-hud { font-size: 0.85rem; padding: 0.15em 0.4em; }
+  .hp-label { font-size: 0.65rem; }
 }
